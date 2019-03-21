@@ -1,0 +1,11 @@
+ports:
+        websockets: 4001
+        httprpc: 4002
+        bzz: 4003
+        p2p: 4004
+datadir: "./tmp/node1"
+pss:
+        kind: "sym"
+        key: "key"
+        topic: "discoverytest"
+        loglevel: "critical"

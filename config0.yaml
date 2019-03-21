@@ -1,0 +1,11 @@
+ports:
+        websockets: 3001
+        httprpc: 3002
+        bzz: 3003
+        p2p: 3004
+datadir: "./tmp/node0"
+pss:
+        kind: "sym"
+        key: "key"
+        topic: "discoverytest"
+        loglevel: "critical"
