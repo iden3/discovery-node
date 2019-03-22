@@ -3,10 +3,13 @@ package commands
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/fatih/color"
-	"github.com/iden3/discovery-node/config"
 	"github.com/urfave/cli"
+	"github.com/iden3/discovery-research/discovery-node/config"
+	"github.com/iden3/discovery-research/discovery-node/node"
+	"github.com/iden3/discovery-research/discovery-node/endpoint"
 )
 
 var NodeCommands = []cli.Command{
@@ -26,6 +29,9 @@ func cmdStart(c *cli.Context) error {
 	fmt.Println("c", config.C)
 
 	core.RunNode()
+
+	apiService := endpoint.Serve(config.C)
+	apiService.Run(":" + strconv.Itoa(config.C.Ports.API))
 
 	return nil
 }

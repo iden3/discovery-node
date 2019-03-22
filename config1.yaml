@@ -1,4 +1,5 @@
 ports:
+        api: 4000
         websockets: 4001
         httprpc: 4002
         bzz: 4003

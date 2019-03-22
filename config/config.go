@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Datadir string
 	Ports   struct {
+		API int
 		WebSockets int
 		HTTPRPC    int
 		Bzz        int
