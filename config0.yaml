@@ -5,6 +5,7 @@ ports:
         bzz: 3003
         p2p: 3004
 datadir: "./tmp/node0"
+dbpath: "./tmp/node0/iddb"
 pss:
         kind: "sym"
         key: "key"

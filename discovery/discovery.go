@@ -1,8 +1,14 @@
 package discovery
 
+import (
+	"fmt"
+	"crypto/ecdsa"
+	"github.com/ethereum/go-ethereum/common"
+)
+
 type DiscoveryService Service
 
-func NewDiscoveryService(idAddr common.Address, pubK ecdsa.PublicKey, url, mode string, proofServer []byte) (DiscoveryService, error) {
+func NewDiscoveryService(idAddr common.Address, pubK *ecdsa.PublicKey, url, mode string, proofServer []byte) (DiscoveryService, error) {
 	d := DiscoveryService{
 		IdAddr: idAddr,
 		PubK: pubK,
@@ -21,10 +27,11 @@ func (d *DiscoveryService) DiscoverIdentity(idAddr common.Address) {
 		About: idAddr,
 		From: d.IdAddr,
 		InfoFrom: []byte{},
-		Nonce: uint64,
+		Nonce: 0,
 		PoW: [32]byte{}, // TODO
 		Signature: []byte{}, // TODO
 	}
+	fmt.Println(q)
 
 	// TODO calculate PoW
 
@@ -42,10 +49,11 @@ func (d *DiscoveryService) AnswerRequest(q Query) {
 	answer := Answer {
 		About: q.About,
 		From: d.IdAddr,
-		AgentId: d,
+		AgentId: Service(*d),
 		Services: []Service{}, // TODO data related to the requested idAddr
 		Signature: []byte{},
 	}
+	fmt.Println(answer)
 
 	// TODO sign packet
 

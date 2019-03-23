@@ -4,9 +4,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/cors"
 	"github.com/iden3/discovery-research/discovery-node/config"
+	"github.com/iden3/discovery-research/discovery-node/node"
 )
 
 var serverConfig config.Config
+var nodesrv *node.NodeSrv
 
 func newApiService() *gin.Engine {
 	api := gin.Default()
@@ -17,7 +19,8 @@ func newApiService() *gin.Engine {
 	return api
 }
 
-func Serve(cnfg config.Config) *gin.Engine {
+func Serve(cnfg config.Config, nodeservice node.NodeSrv) *gin.Engine {
 	serverConfig = cnfg
+	nodesrv = &nodeservice
 	return newApiService()
 }

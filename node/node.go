@@ -1,41 +1,33 @@
 package node
 
 import (
-	"bufio"
 	"fmt"
 	"log"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 	swarm "github.com/vocdoni/go-dvote/net/swarm"
 	"github.com/iden3/discovery-research/discovery-node/config"
 	"github.com/iden3/discovery-research/discovery-node/utils"
+	"github.com/iden3/discovery-research/discovery-node/db"
+	"github.com/iden3/discovery-research/discovery-node/discovery"
 )
 
-func readInput(sn *swarm.SimplePss) {
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		fmt.Print("enter msg: ")
-		msg, _ := reader.ReadString('\n')
-		msg = strings.TrimSpace(msg)
-		if msg == "" {
-			fmt.Println("no message")
-			continue
-		}
-		fmt.Print("[SEND MSG]: ")
-		color.Cyan(msg)
-		err := sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, msg, "")
-		if err != nil {
-			color.Red(err.Error())
-		}
-	}
+
+type NodeSrv struct {
+	db *db.Db
+	sn *swarm.SimplePss
 }
 
-func RunNode() {
+func RunNode() (*NodeSrv, error) {
 	fmt.Println("initializing node")
+
+	sto, err := db.New("./tmp/iddb")
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
 
 	sn := new(swarm.SimplePss)
 
@@ -43,6 +35,7 @@ func RunNode() {
 	privateKey, err := crypto.GenerateKey()
 	if err != nil {
 		log.Fatal(err)
+		return nil, err
 	}
 	// set private key
 	sn.Key = privateKey
@@ -78,12 +71,15 @@ func RunNode() {
 		}
 	}()
 
-	// first msg
-	currentTime := int64(time.Now().Unix())
-	err = sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, fmt.Sprintf("Hello world from %s at %d", "hostname", currentTime), "")
-	if err != nil {
-		color.Red(err.Error())
+	node := &NodeSrv{
+		db: sto,
+		sn: sn,
 	}
 
-	readInput(sn)
+	return node, nil
+}
+
+func (node *NodeSrv) StoreId(id discovery.Id) error {
+	// node.db.Put(id.IdAddr.Bytes(), )
+	return nil
 }

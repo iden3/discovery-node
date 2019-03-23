@@ -7,6 +7,7 @@ import (
 
 type Config struct {
 	Datadir string
+	DbPath string
 	Ports   struct {
 		API int
 		WebSockets int
