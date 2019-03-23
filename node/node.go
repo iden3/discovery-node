@@ -1,4 +1,4 @@
-package core
+package node
 
 import (
 	"bufio"

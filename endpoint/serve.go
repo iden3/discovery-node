@@ -12,6 +12,8 @@ func newApiService() *gin.Engine {
 	api := gin.Default()
 	api.Use(cors.Default())
 	api.GET("/info", handleInfo)
+	api.POST("/id", handleStoreId)
+	api.GET("/id/:idaddr", handleDiscoverId)
 	return api
 }
 

@@ -5,7 +5,6 @@ go 1.12
 require (
 	github.com/ethereum/go-ethereum v1.8.23
 	github.com/fatih/color v1.7.0
-	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a // indirect
 	github.com/iden3/discovery-research/discovery-node v0.0.0-00010101000000-000000000000
 	github.com/spf13/viper v1.2.1
 	github.com/urfave/cli v1.20.0

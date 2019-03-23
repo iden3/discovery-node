@@ -7,3 +7,15 @@ func handleInfo(c *gin.Context) {
 		"foo": "bar",
 	})
 }
+
+func handleStoreId(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"foo": "bar",
+	})
+}
+
+func handleDiscoverId(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"foo": "bar",
+	})
+}

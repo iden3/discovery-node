@@ -28,10 +28,13 @@ func cmdStart(c *cli.Context) error {
 	}
 	fmt.Println("c", config.C)
 
-	core.RunNode()
-
+	go func(){
 	apiService := endpoint.Serve(config.C)
 	apiService.Run(":" + strconv.Itoa(config.C.Ports.API))
+}()
+
+	node.RunNode()
+
 
 	return nil
 }
