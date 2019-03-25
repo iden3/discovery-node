@@ -55,6 +55,7 @@ type Query struct {
 	About     common.Address // About Who
 	From      common.Address
 	InfoFrom  []byte // TODO to be defined
+	Timestamp int64
 	Nonce     uint64
 	PoW       [32]byte // TODO for the moment Keccak256
 	Signature []byte
@@ -85,6 +86,7 @@ type Answer struct {
 	From      common.Address
 	AgentId   Service
 	Services  []Service
+	Timestamp int64
 	Signature []byte
 }
 

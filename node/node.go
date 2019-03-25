@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 	"github.com/iden3/discovery-node/config"
 	"github.com/iden3/discovery-node/db"
 	"github.com/iden3/discovery-node/discovery"
 	"github.com/iden3/discovery-node/utils"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 	swarm "github.com/vocdoni/go-dvote/net/swarm"
 )
 
@@ -103,16 +106,36 @@ func (node *NodeSrv) StoreId(id discovery.Id) error {
 }
 
 // DiscoverId checks if the nade has a fresh data from the id, if not, asks to the network for an idenity address
-func (node *NodeSrv) DiscoverId(id discovery.Id) error {
-	query, err := node.discsrv.NewQueryPacket(id.IdAddr)
+func (node *NodeSrv) DiscoverId(idAddr common.Address) (*discovery.Answer, error) {
+	// TODO check if is an own identity
+
+	// check if this node has already a fresh copy of the packet of idAddr
+	answerBytes, err := node.db.Get(idAddr.Bytes()) // TODO check this in the dbWithPrefix of cache
+	answer, err := discovery.AnswerFromBytes(answerBytes)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	if err != errors.ErrNotFound && answer.Timestamp < time.Now().Unix()-1000 {
+		// the node has the packet, and is a fresh copy
+
+		return answer, nil
+	}
+
+	query, err := node.discsrv.NewQueryPacket(idAddr)
+	if err != nil {
+		return nil, err
 	}
 	fmt.Println(query)
 
-	// TODO send the packet over Pss Swarm
+	// send the packet over Pss Swarm
+	qBytes, err := query.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	msg := hexutil.Encode(qBytes)
+	err = node.sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, msg, "")
 
-	return nil
+	return nil, err
 }
 
 // ResolveId checks if the node knows the idAddress data, if it knows, returns the data

@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/iden3/discovery-node/discovery"
 	log "github.com/sirupsen/logrus"
@@ -37,6 +38,12 @@ func handleStoreId(c *gin.Context) {
 }
 
 func handleDiscoverId(c *gin.Context) {
+	idAddrStr := c.Param("idaddr")
+	idAddr := common.HexToAddress(idAddrStr)
+	_, err := nodesrv.DiscoverId(idAddr)
+	if err != nil {
+		fail(c, "error storing id", err)
+	}
 	c.JSON(200, gin.H{
 		"foo": "bar",
 	})

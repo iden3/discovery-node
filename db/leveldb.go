@@ -5,13 +5,13 @@ import (
 )
 
 type Db struct {
-	ldb *leveldb.DB
+	ldb    *leveldb.DB
 	prefix []byte
 }
 
 func New(path string) (*Db, error) {
 	ldb, err := leveldb.OpenFile(path, nil)
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 	return &Db{ldb, []byte{}}, nil
@@ -34,3 +34,16 @@ func (db *Db) Get(key []byte) ([]byte, error) {
 	return v, nil
 }
 
+func (db *Db) Iterate(f func([]byte, []byte)) error {
+	snapshot, err := db.ldb.GetSnapshot()
+	if err != nil {
+		return err
+	}
+	iter := snapshot.NewIterator(nil, nil)
+	for iter.Next() {
+		f(iter.Key(), iter.Value())
+	}
+	iter.Release()
+	err = iter.Error()
+	return err
+}
