@@ -7,7 +7,7 @@ require (
 	github.com/fatih/color v1.7.0
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
 	github.com/gin-gonic/gin v1.3.0
-	github.com/iden3/discovery-node v0.0.0-00010101000000-000000000000 // indirect
+	github.com/iden3/discovery-node v0.0.0-00010101000000-000000000000
 	github.com/sirupsen/logrus v1.4.0
 	github.com/spf13/viper v1.2.1
 	github.com/stretchr/testify v1.2.2
