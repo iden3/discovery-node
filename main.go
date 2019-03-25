@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/fatih/color"
+	"github.com/iden3/discovery-node/commands"
 	"github.com/urfave/cli"
-	"github.com/iden3/discovery-research/discovery-node/commands"
 )
 
 func main() {

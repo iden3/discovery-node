@@ -1,10 +1,10 @@
 package endpoint
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/cors"
-	"github.com/iden3/discovery-research/discovery-node/config"
-	"github.com/iden3/discovery-research/discovery-node/node"
+	"github.com/gin-gonic/gin"
+	"github.com/iden3/discovery-node/config"
+	"github.com/iden3/discovery-node/node"
 )
 
 var serverConfig config.Config

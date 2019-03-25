@@ -7,13 +7,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
+	"github.com/iden3/discovery-node/config"
+	"github.com/iden3/discovery-node/db"
+	"github.com/iden3/discovery-node/discovery"
+	"github.com/iden3/discovery-node/utils"
 	swarm "github.com/vocdoni/go-dvote/net/swarm"
-	"github.com/iden3/discovery-research/discovery-node/config"
-	"github.com/iden3/discovery-research/discovery-node/utils"
-	"github.com/iden3/discovery-research/discovery-node/db"
-	"github.com/iden3/discovery-research/discovery-node/discovery"
 )
-
 
 type NodeSrv struct {
 	db *db.Db
