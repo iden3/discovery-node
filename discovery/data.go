@@ -90,6 +90,13 @@ type Answer struct {
 	Signature []byte
 }
 
+func (a *Answer) Id() *Id {
+	return &Id{
+		IdAddr:   a.About,
+		Services: a.Services,
+	}
+}
+
 func (a *Answer) Bytes() ([]byte, error) {
 	b, err := json.Marshal(a)
 	if err != nil {

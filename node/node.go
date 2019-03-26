@@ -20,9 +20,11 @@ import (
 )
 
 type NodeSrv struct {
-	discsrv discovery.DiscoveryService
-	db      *db.Db
-	sn      *swarm.SimplePss
+	discsrv     discovery.DiscoveryService
+	db          *db.Db
+	dbOwnIds    *db.Db
+	dbAnswCache *db.Db
+	sn          *swarm.SimplePss
 }
 
 func RunNode() (*NodeSrv, error) {
@@ -33,6 +35,8 @@ func RunNode() (*NodeSrv, error) {
 		log.Fatal(err)
 		return nil, err
 	}
+	stoIdentities := sto.WithPrefix([]byte("identities"))
+	stoAnswers := sto.WithPrefix([]byte("answers"))
 
 	sn := new(swarm.SimplePss)
 
@@ -78,9 +82,11 @@ func RunNode() (*NodeSrv, error) {
 	}
 
 	node := &NodeSrv{
-		discsrv: dscsrv,
-		db:      sto,
-		sn:      sn,
+		discsrv:     dscsrv,
+		db:          sto,
+		dbOwnIds:    stoIdentities,
+		dbAnswCache: stoAnswers,
+		sn:          sn,
 	}
 
 	go func() {
@@ -101,31 +107,40 @@ func (node *NodeSrv) StoreId(id discovery.Id) error {
 	if err != nil {
 		return err
 	}
-	node.db.Put(id.IdAddr.Bytes(), idBytes)
+	node.dbOwnIds.Put(id.IdAddr.Bytes(), idBytes)
 	return nil
 }
 
 // DiscoverId checks if the nade has a fresh data from the id, if not, asks to the network for an idenity address
-func (node *NodeSrv) DiscoverId(idAddr common.Address) (*discovery.Answer, error) {
-	// TODO check if is an own identity
+func (node *NodeSrv) DiscoverId(idAddr common.Address) (*discovery.Id, error) {
+	// check if is an own identity that this node holds
+	idBytes, err := node.dbOwnIds.Get(idAddr.Bytes())
+	if err != errors.ErrNotFound {
+		id, err := discovery.IdFromBytes(idBytes)
+		return id, err
+	}
 
 	// check if this node has already a fresh copy of the packet of idAddr
-	answerBytes, err := node.db.Get(idAddr.Bytes()) // TODO check this in the dbWithPrefix of cache
-	answer, err := discovery.AnswerFromBytes(answerBytes)
-	if err != nil {
-		return nil, err
+	answerBytes, err := node.dbAnswCache.Get(idAddr.Bytes())
+	if err != errors.ErrNotFound {
+		// the node has the packet
+		answer, err := discovery.AnswerFromBytes(answerBytes)
+		if err != nil {
+			return nil, err
+		}
+		if answer.Timestamp < time.Now().Unix()-1000 {
+			// the data is a fresh copy
+			// set id data structure from answer
+			return answer.Id(), nil
+		}
 	}
-	if err != errors.ErrNotFound && answer.Timestamp < time.Now().Unix()-1000 {
-		// the node has the packet, and is a fresh copy
 
-		return answer, nil
-	}
+	// if answer not found, ask to the network for it
 
 	query, err := node.discsrv.NewQueryPacket(idAddr)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(query)
 
 	// send the packet over Pss Swarm
 	qBytes, err := query.Bytes()
@@ -139,9 +154,13 @@ func (node *NodeSrv) DiscoverId(idAddr common.Address) (*discovery.Answer, error
 }
 
 // ResolveId checks if the node knows the idAddress data, if it knows, returns the data
-func (node *NodeSrv) ResolveId(idAddr common.Address) error {
-
-	return nil
+func (node *NodeSrv) ResolveId(idAddr common.Address) (*discovery.Id, error) {
+	idBytes, err := node.dbOwnIds.Get(idAddr.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	id, err := discovery.IdFromBytes(idBytes)
+	return id, err
 }
 
 // HandleMsg
@@ -154,8 +173,12 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		}
 		// TODO check query packet (PoW, Signature, etc)
 
-		err = node.ResolveId(query.About)
-
+		id, err := node.ResolveId(query.About)
+		if err != nil {
+			return err
+		}
+		fmt.Println(id)
+		// TODO return id to the requester
 		return nil
 	case discovery.ANSWERMSG:
 		answer, err := discovery.AnswerFromBytes(msg)
@@ -166,6 +189,11 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 
 		// TODO store data
 		fmt.Println(answer)
+		answerBytes, err := answer.Bytes()
+		if err != nil {
+			return err
+		}
+		node.dbAnswCache.Put(answer.About.Bytes(), answerBytes)
 		return nil
 	}
 
