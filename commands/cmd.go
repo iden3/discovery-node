@@ -12,6 +12,7 @@ import (
 	"github.com/urfave/cli"
 )
 
+// NodeCommands contain the cli commands
 var NodeCommands = []cli.Command{
 	{
 		Name:    "start",

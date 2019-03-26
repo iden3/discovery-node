@@ -2,6 +2,7 @@ package endpoint
 
 import (
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
 	"github.com/iden3/discovery-node/discovery"
 	log "github.com/sirupsen/logrus"
@@ -30,6 +31,7 @@ func handleStoreId(c *gin.Context) {
 	c.BindJSON(&id)
 
 	err := nodesrv.StoreId(id)
+	color.Cyan("id stored: " + id.IdAddr.Hex())
 	if err != nil {
 		fail(c, "error storing id", err)
 	}
@@ -44,6 +46,7 @@ func handleDiscoverId(c *gin.Context) {
 	if err != nil {
 		fail(c, "error storing id", err)
 	}
+	// color.Cyan("id discovered: " + id.IdAddr.Hex())
 	c.JSON(200, gin.H{
 		"foo": "bar",
 	})

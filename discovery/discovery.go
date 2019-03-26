@@ -2,13 +2,14 @@ package discovery
 
 import (
 	"crypto/ecdsa"
-	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// DiscoveryService is a concretion of Service data type, for the discovery-node service
 type DiscoveryService Service
 
+// NewDiscoveryService creates a new DiscoveryService
 func NewDiscoveryService(idAddr common.Address, pubK *ecdsa.PublicKey, url, mode string, proofServer []byte) (DiscoveryService, error) {
 	d := DiscoveryService{
 		IdAddr:      idAddr,
@@ -32,7 +33,6 @@ func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (Query, error) 
 		PoW:       [32]byte{}, // TODO
 		Signature: []byte{},   // TODO
 	}
-	fmt.Println(q)
 
 	// TODO calculate PoW
 
@@ -43,7 +43,7 @@ func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (Query, error) 
 
 // AnswerRequest generates and returns the answer for a Query request for which knows the answer
 // first, the Discovery Node will check if knows the answer
-func (d *DiscoveryService) NewAnswerPacket(q Query) {
+func (d *DiscoveryService) NewAnswerPacket(q Query) (Answer, error) {
 	// get data from the requested q.About
 
 	// generate the answer data packet
@@ -54,10 +54,8 @@ func (d *DiscoveryService) NewAnswerPacket(q Query) {
 		Services:  []Service{}, // TODO data related to the requested idAddr
 		Signature: []byte{},
 	}
-	fmt.Println(answer)
 
 	// TODO sign packet
 
-	// send Answer packet
-
+	return answer, nil
 }

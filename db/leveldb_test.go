@@ -3,10 +3,12 @@ package db
 import (
 	"io/ioutil"
 	"testing"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/syndtr/goleveldb/leveldb/errors"
 )
+
 func TestNew(t *testing.T) {
 	dir, err := ioutil.TempDir("", "db")
 	assert.Nil(t, err)
@@ -40,6 +42,7 @@ func TestPrefix(t *testing.T) {
 	dbPrefix := db.WithPrefix([]byte("prefix1"))
 
 	err = dbPrefix.Put([]byte("k1"), []byte("v1"))
+	assert.Nil(t, err)
 
 	_, err = db.Get([]byte("k1"))
 	assert.Equal(t, err, errors.ErrNotFound)
@@ -48,4 +51,3 @@ func TestPrefix(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("v1"), v1)
 }
-

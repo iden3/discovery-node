@@ -29,7 +29,7 @@ func TestQueryAnswer(t *testing.T) {
 	}
 	qBytes, err := q.Bytes()
 	assert.Nil(t, err)
-	assert.Equal(t, qBytes[0], QUERYMSG)
+	assert.Equal(t, qBytes[:PREFIXLENGTH], QUERYMSG)
 	qFromBytes, err := QueryFromBytes(qBytes)
 	assert.Nil(t, err)
 	assert.Equal(t, q, qFromBytes)
@@ -43,7 +43,7 @@ func TestQueryAnswer(t *testing.T) {
 	}
 	aBytes, err := a.Bytes()
 	assert.Nil(t, err)
-	assert.Equal(t, aBytes[0], ANSWERMSG)
+	assert.Equal(t, aBytes[:PREFIXLENGTH], ANSWERMSG)
 	aFromBytes, err := AnswerFromBytes(aBytes)
 	assert.Nil(t, err)
 	assert.Equal(t, a, aFromBytes)

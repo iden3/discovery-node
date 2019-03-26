@@ -11,3 +11,4 @@ pss:
         key: "key"
         topic: "discoverytest"
         loglevel: "critical"
+discoverfreshtimeout: 1000000

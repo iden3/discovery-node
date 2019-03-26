@@ -2,13 +2,13 @@ package node
 
 import (
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
 	"github.com/iden3/discovery-node/config"
@@ -19,6 +19,7 @@ import (
 	swarm "github.com/vocdoni/go-dvote/net/swarm"
 )
 
+// NodeSrv contains the services of the node
 type NodeSrv struct {
 	discsrv     discovery.DiscoveryService
 	db          *db.Db
@@ -27,10 +28,11 @@ type NodeSrv struct {
 	sn          *swarm.SimplePss
 }
 
+// RunNode starts a new discovery node service
 func RunNode() (*NodeSrv, error) {
 	fmt.Println("initializing node")
 
-	sto, err := db.New("./tmp/iddb")
+	sto, err := db.New(config.C.DbPath)
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
@@ -66,11 +68,11 @@ func RunNode() (*NodeSrv, error) {
 		os.Exit(0)
 	}
 	sn.PssSub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, "")
-	defer sn.PssTopics[config.C.Pss.Topic].Unregister()
+	// defer sn.PssTopics[config.C.Pss.Topic].Unregister()
 
 	fmt.Print("pubK: ")
 	color.Cyan(utils.PublicKeyToString(publicKey))
-	// fmt.Println("pubK", sn.PssPubKey) // is the same than publicKey, with 0x04 at the begining
+	// fmt.Println("pubK", sn.PssPubKey) // is the same than publicKey, with 0x04 at the beginning
 
 	publicKeyECDSA := *publicKey.(*ecdsa.PublicKey)
 	addr := crypto.PubkeyToAddress(publicKeyECDSA)
@@ -89,19 +91,28 @@ func RunNode() (*NodeSrv, error) {
 		sn:          sn,
 	}
 
+	fmt.Println("listening pss swarm, topic: " + config.C.Pss.Topic)
 	go func() {
 		for {
-			pmsg := <-sn.PssTopics[config.C.Pss.Topic].Delivery
+			pmsg := <-node.sn.PssTopics[config.C.Pss.Topic].Delivery
 			fmt.Print("[MSG RECEIVED]: ")
 			color.Yellow(string(pmsg.Msg))
 
-			node.HandleMsg(pmsg.Msg)
+			msgBytes, err := hex.DecodeString(string(pmsg.Msg))
+			if err != nil {
+				color.Red(err.Error())
+			}
+			err = node.HandleMsg(msgBytes)
+			if err != nil {
+				color.Red(err.Error())
+			}
 		}
 	}()
 
 	return node, nil
 }
 
+// StoreId adds the id into the dbOwnIds
 func (node *NodeSrv) StoreId(id discovery.Id) error {
 	idBytes, err := id.Bytes()
 	if err != nil {
@@ -113,30 +124,34 @@ func (node *NodeSrv) StoreId(id discovery.Id) error {
 
 // DiscoverId checks if the nade has a fresh data from the id, if not, asks to the network for an idenity address
 func (node *NodeSrv) DiscoverId(idAddr common.Address) (*discovery.Id, error) {
+	fmt.Println("start DiscoverId function")
+	fmt.Println("checking if id is an own identity")
 	// check if is an own identity that this node holds
 	idBytes, err := node.dbOwnIds.Get(idAddr.Bytes())
 	if err != errors.ErrNotFound {
+		fmt.Println("node.go:l119 err: " + err.Error())
 		id, err := discovery.IdFromBytes(idBytes)
 		return id, err
 	}
 
+	fmt.Println("check if this node has already a fresh copy of the packet of idAddr")
 	// check if this node has already a fresh copy of the packet of idAddr
 	answerBytes, err := node.dbAnswCache.Get(idAddr.Bytes())
 	if err != errors.ErrNotFound {
 		// the node has the packet
 		answer, err := discovery.AnswerFromBytes(answerBytes)
-		if err != nil {
-			return nil, err
-		}
-		if answer.Timestamp < time.Now().Unix()-1000 {
+		color.Cyan("node has a copy of the id data")
+		if err == nil && answer.Timestamp < time.Now().Unix()-config.C.DiscoverFreshTimeout {
 			// the data is a fresh copy
 			// set id data structure from answer
+			color.Cyan("node has a fresh copy of the id data")
 			return answer.Id(), nil
 		}
 	}
 
-	// if answer not found, ask to the network for it
+	// if answer not found in local databases, ask to the network for it
 
+	fmt.Println("create NewQueryPacket")
 	query, err := node.discsrv.NewQueryPacket(idAddr)
 	if err != nil {
 		return nil, err
@@ -147,7 +162,8 @@ func (node *NodeSrv) DiscoverId(idAddr common.Address) (*discovery.Id, error) {
 	if err != nil {
 		return nil, err
 	}
-	msg := hexutil.Encode(qBytes)
+	msg := hex.EncodeToString(qBytes)
+	fmt.Println("Send Query over Pss Swarm")
 	err = node.sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, msg, "")
 
 	return nil, err
@@ -163,24 +179,30 @@ func (node *NodeSrv) ResolveId(idAddr common.Address) (*discovery.Id, error) {
 	return id, err
 }
 
-// HandleMsg
+// HandleMsg handles the PSS Swarm messages that the node receives, and depending on the type performs the specified actions
 func (node *NodeSrv) HandleMsg(msg []byte) error {
-	switch msg[0] {
-	case discovery.QUERYMSG:
+	switch hex.EncodeToString(msg[:discovery.PREFIXLENGTH]) {
+	case hex.EncodeToString(discovery.QUERYMSG):
 		query, err := discovery.QueryFromBytes(msg)
 		if err != nil {
 			return err
 		}
 		// TODO check query packet (PoW, Signature, etc)
 
+		fmt.Println("received QUERY msg packet asking for " + query.About.Hex())
+
 		id, err := node.ResolveId(query.About)
 		if err != nil {
+			color.Yellow("received Query msg packet asking for id " + query.About.Hex() + ", and is not in this node")
 			return err
 		}
+		color.Cyan("received Query msg packet asking for id " + query.About.Hex() + ", and is in this node")
+		fmt.Print("id data found in this node: ")
 		fmt.Println(id)
+
 		// TODO return id to the requester
 		return nil
-	case discovery.ANSWERMSG:
+	case hex.EncodeToString(discovery.ANSWERMSG):
 		answer, err := discovery.AnswerFromBytes(msg)
 		if err != nil {
 			return err
@@ -188,13 +210,15 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		// TODO check query packet (PoW, Signature, etc)
 
 		// TODO store data
-		fmt.Println(answer)
+		// fmt.Println(answer)
 		answerBytes, err := answer.Bytes()
 		if err != nil {
 			return err
 		}
 		node.dbAnswCache.Put(answer.About.Bytes(), answerBytes)
 		return nil
+	default:
+		fmt.Println("received pss swarm packet, not recognized type")
 	}
 
 	return nil

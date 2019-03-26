@@ -13,12 +13,13 @@ var nodesrv *node.NodeSrv
 func newApiService() *gin.Engine {
 	api := gin.Default()
 	api.Use(cors.Default())
-	api.GET("/info", handleInfo)
+	api.GET("/", handleInfo)
 	api.POST("/id", handleStoreId)
 	api.GET("/id/:idaddr", handleDiscoverId)
 	return api
 }
 
+// Serve serves the endpoints service
 func Serve(cnfg config.Config, nodeservice node.NodeSrv) *gin.Engine {
 	serverConfig = cnfg
 	nodesrv = &nodeservice

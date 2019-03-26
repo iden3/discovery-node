@@ -1,11 +1,13 @@
 package discovery
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/iden3/discovery-node/utils"
 )
 
 // types of services
@@ -15,8 +17,10 @@ const NOTIFICATIONSSERVERTYPE = "notificationsserver"
 const DISCOVERYTYPE = "discovery"
 
 // types of data packets
-var QUERYMSG = byte(0x00)
-var ANSWERMSG = byte(0x01)
+const PREFIXLENGTH = 7
+
+var QUERYMSG = utils.HashBytes([]byte("querymsg"))[:PREFIXLENGTH]
+var ANSWERMSG = utils.HashBytes([]byte("answermsg"))[:PREFIXLENGTH]
 
 // Service holds the data about a node service (can be a Relay, a NameServer, a DiscoveryNode, etc)
 type Service struct {
@@ -34,6 +38,7 @@ type Id struct {
 	Services []Service
 }
 
+// Bytes parses the Id to byte array
 func (id *Id) Bytes() ([]byte, error) {
 	// maybe in the future write a byte parser&unparser
 	// var b bytes.Buffer
@@ -44,6 +49,8 @@ func (id *Id) Bytes() ([]byte, error) {
 
 	return json.Marshal(id)
 }
+
+// IdFromBytes parses Id data structure from a byte array
 func IdFromBytes(b []byte) (*Id, error) {
 	var id *Id
 	err := json.Unmarshal(b, &id)
@@ -61,22 +68,25 @@ type Query struct {
 	Signature []byte
 }
 
+// Bytes parses the Query to byte array
 func (q *Query) Bytes() ([]byte, error) {
 	b, err := json.Marshal(q)
 	if err != nil {
 		return b, err
 	}
 	var r []byte
-	r = append(r, []byte{QUERYMSG}...)
+	r = append(r, QUERYMSG...)
 	r = append(r, b...)
 	return r, nil
 }
+
+// QureyFromBytes parses Query data structure from a byte array
 func QueryFromBytes(b []byte) (*Query, error) {
-	if b[0] != QUERYMSG {
+	if !bytes.Equal(b[:PREFIXLENGTH], QUERYMSG) {
 		return nil, errors.New("Not query type")
 	}
 	var q *Query
-	err := json.Unmarshal(b[1:], &q)
+	err := json.Unmarshal(b[PREFIXLENGTH:], &q)
 	return q, err
 }
 
@@ -90,6 +100,7 @@ type Answer struct {
 	Signature []byte
 }
 
+// Bytes parses the Answer to byte array
 func (a *Answer) Id() *Id {
 	return &Id{
 		IdAddr:   a.About,
@@ -97,21 +108,24 @@ func (a *Answer) Id() *Id {
 	}
 }
 
+// Bytes parses the Answer to byte array
 func (a *Answer) Bytes() ([]byte, error) {
 	b, err := json.Marshal(a)
 	if err != nil {
 		return b, err
 	}
 	var r []byte
-	r = append(r, []byte{ANSWERMSG}...)
+	r = append(r, ANSWERMSG...)
 	r = append(r, b...)
 	return r, nil
 }
+
+// AnswerFromBytes parses Answer data structure from a byte array
 func AnswerFromBytes(b []byte) (*Answer, error) {
-	if b[0] != ANSWERMSG {
+	if !bytes.Equal(b[:PREFIXLENGTH], ANSWERMSG) {
 		return nil, errors.New("Not answer type")
 	}
 	var a *Answer
-	err := json.Unmarshal(b[1:], &a)
+	err := json.Unmarshal(b[PREFIXLENGTH:], &a)
 	return a, err
 }

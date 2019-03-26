@@ -5,11 +5,12 @@ import (
 	"github.com/urfave/cli"
 )
 
+// Config holds the config file data
 type Config struct {
 	Datadir string
-	DbPath string
+	DbPath  string
 	Ports   struct {
-		API int
+		API        int
 		WebSockets int
 		HTTPRPC    int
 		Bzz        int
@@ -21,10 +22,13 @@ type Config struct {
 		Topic    string
 		LogLevel string
 	}
+	DiscoverFreshTimeout int64
 }
 
+// C contains the Config data
 var C Config
 
+// MustRead reads the config file and puts the data into the C variable
 func MustRead(c *cli.Context) error {
 	viper.SetConfigType("yaml")
 	viper.SetConfigName("config")
