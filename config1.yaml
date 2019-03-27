@@ -12,3 +12,4 @@ pss:
         topic: "discoverytest"
         loglevel: "critical"
 discoverfreshtimeout: 1000000
+mode: "ACTIVE"

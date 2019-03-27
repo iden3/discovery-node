@@ -19,6 +19,8 @@ import (
 	swarm "github.com/vocdoni/go-dvote/net/swarm"
 )
 
+const ACTIVENODETYPE = "ACTIVE"
+
 // NodeSrv contains the services of the node
 type NodeSrv struct {
 	discsrv     discovery.DiscoveryService
@@ -31,6 +33,10 @@ type NodeSrv struct {
 // RunNode starts a new discovery node service
 func RunNode() (*NodeSrv, error) {
 	fmt.Println("initializing node")
+
+	if config.C.Mode == ACTIVENODETYPE {
+		fmt.Println("starting an " + ACTIVENODETYPE + " node")
+	}
 
 	sto, err := db.New(config.C.DbPath)
 	if err != nil {
@@ -183,6 +189,11 @@ func (node *NodeSrv) ResolveId(idAddr common.Address) (*discovery.Id, error) {
 func (node *NodeSrv) HandleMsg(msg []byte) error {
 	switch hex.EncodeToString(msg[:discovery.PREFIXLENGTH]) {
 	case hex.EncodeToString(discovery.QUERYMSG):
+		if config.C.Mode != ACTIVENODETYPE {
+			// as a non active node, will not answer QUERY messages
+			return nil
+		}
+
 		query, err := discovery.QueryFromBytes(msg)
 		if err != nil {
 			return err
@@ -200,13 +211,17 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		fmt.Print("id data found in this node: ")
 		fmt.Println(id)
 
-		// TODO return id to the requester
+		// return id to the requester
+		err = node.AnswerId(query, id)
+
 		return nil
 	case hex.EncodeToString(discovery.ANSWERMSG):
+		color.Green("msg ANSWER received")
 		answer, err := discovery.AnswerFromBytes(msg)
 		if err != nil {
 			return err
 		}
+		fmt.Println(answer)
 		// TODO check query packet (PoW, Signature, etc)
 
 		// TODO store data
@@ -223,4 +238,20 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 
 	return nil
 
+}
+
+func (node *NodeSrv) AnswerId(query *discovery.Query, id *discovery.Id) error {
+	answer, err := node.discsrv.NewAnswerPacket(query, id)
+	if err != nil {
+		return err
+	}
+
+	aBytes, err := answer.Bytes()
+	if err != nil {
+		return err
+	}
+	msg := hex.EncodeToString(aBytes)
+	fmt.Println("Send Answer over Pss Swarm")
+	err = node.sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, msg, "")
+	return err
 }

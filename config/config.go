@@ -23,6 +23,7 @@ type Config struct {
 		LogLevel string
 	}
 	DiscoverFreshTimeout int64
+	Mode                 string
 }
 
 // C contains the Config data

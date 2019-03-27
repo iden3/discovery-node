@@ -14,8 +14,10 @@ func newApiService() *gin.Engine {
 	api := gin.Default()
 	api.Use(cors.Default())
 	api.GET("/", handleInfo)
-	api.POST("/id", handleStoreId)
 	api.GET("/id/:idaddr", handleDiscoverId)
+	if serverConfig.Mode == node.ACTIVENODETYPE {
+		api.POST("/id", handleStoreId)
+	}
 	return api
 }
 

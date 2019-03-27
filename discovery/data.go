@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/iden3/discovery-node/utils"
 )
 
@@ -28,10 +29,25 @@ var ANSWERMSG = utils.HashBytes([]byte("answermsg"))[:PREFIXLENGTH]
 type Service struct {
 	IdAddr      common.Address
 	PssPubK     *ecdsa.PublicKey // Public Key of the pss node, to receive encrypted data packets
+	PssPubKCmpr []byte
 	Url         string
 	Type        string // TODO define type specification (relay, nameserver, etc)
-	Mode        string // Active or Passive
+	Mode        string // Active or Passive(gateway) (this only affects to discovery-node's type)
 	ProofServer []byte // TODO ProofClaimServer data type (to be defined)
+}
+
+func (service Service) MarshalJSON() ([]byte, error) {
+	var err error
+	service.PssPubK, err = crypto.DecompressPubkey(service.PssPubKCmpr)
+	if err != nil {
+		return []byte{}, err
+	}
+	return json.Marshal(service)
+}
+
+func (service Service) UnmarshalJSON(b []byte) error {
+	service.PssPubKCmpr = crypto.CompressPubkey(service.PssPubK)
+	return nil
 }
 
 // Id holds the data related to an identity
