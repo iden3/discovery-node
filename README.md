@@ -7,7 +7,7 @@ Draft implementation of `discovery-node` of the decentralized discovery protocol
 ![network00](https://raw.githubusercontent.com/iden3/discovery-node/master/docs/network00.png "network00")
 
 Types of node:
-- `passive`: are the nodes that only perform petitions, acting as gateways to the discovery network
+- `gateway` (`passive`): are the nodes that only perform petitions, acting as gateways to the discovery network
 - `active`: are the nodes that are answering requests
 
 
@@ -20,23 +20,24 @@ Databases:
 
 #### Sample discovery flow
 Roles:
-- `Issuer`: `discovery-node` that wants to know about one identity
-- `Id_Agent`/`Discovery Server`: `discovery-node` that knows the info about the identity, and is listening in `Swarm Pss` in the topic `id_discovery`
+- `user`: user identity, from a phone/laptop device
+- `Requester`: `discovery-node` that wants to know about one identity
+- `Id_Agent`: `discovery-node` that knows the info about the identity, and is listening in `Swarm Pss` in the topic `id_discovery`
 
 Discovery flow:
-1. `discovery-node` receives an http petition asking for an identity info, from now, the `discovery-node` will be the `Issuer`
-2. `Issuer` checks if already knows a fresh copy of the data packet of the identity
+1. `discovery-node` receives an http petition from the `user` asking for an identity info, from now, the `discovery-node` will be the `Requester`
+2. `Requester` checks if already knows a fresh copy of the data packet of the identity
 	- in case that has the data, checks that the `timestamp` is not too old
 	- if the data is fresh, returns it and finishes the process
 	- if the identity data was not in its databases, ask to the network for it (following steps)
-3. `Issuer` creates `Query` packet asking for who is the relay of identity `john@domain.eth`
-4. `Issuer` sends the `Query` packet into the `Swarm Pss` network under the topic `id_discovery`
+3. `Requester` creates `Query` packet asking for who is the relay of identity `john@domain.eth`
+4. `Requester` sends the `Query` packet into the `Swarm Pss` network under the topic `id_discovery`
 5. the `Id_Agent` server of that identity will receive the `Query` packet and will see that is a user under its umbrella
-6. `Id_Agent` server will answer the `Answer` packet (with the proofs of validity) to the `Issuer`
-7. `Issuer` receives the `Answer` packet, and now knows how to reach the Relay node of `john@domain.eth`
+6. `Id_Agent` server will answer the `Answer` packet (with the proofs of validity) to the `Requester`
+7. `Requester` receives the `Answer` packet, and now knows how to reach the Relay node of `john@domain.eth`, and can answer to the `user`
 
 ```
-Issuer                       Id_Agent
+Requester                       Id_Agent
    +                            +
    |                            |
    * 1                          |
@@ -62,7 +63,7 @@ Each data packet that is sent over the network, goes with a `ProofOfWork`, and a
 // Service holds the data about a node service (can be a Relay, a NameServer, a DiscoveryNode, etc)
 type Service struct {
 	IdAddr      common.Address
-	PubK        *ecdsa.PublicKey // (optional ) Public Key of the node, to receive encrypted data packets
+	PssPubK     *ecdsa.PublicKey // Public Key of the pss node, to receive encrypted data packets
 	Url         string
 	Type        string
 	Mode        string // Active or Passive
@@ -71,17 +72,18 @@ type Service struct {
 
 // Query is the data packet that a node sends to discover data about one identity
 type Query struct {
-	About     common.Address // About Who
-	From      common.Address
-	InfoFrom  []byte // to be defined
-	Timestamp int64
-	Nonce     uint64
-	PoW       [32]byte // for the moment Keccak256
-	Signature []byte
+	Version          string         // version of the protocol
+	About            common.Address // About Who is requesting data (about which identity address)
+	Requester        common.Address
+	RequesterPssPubK *ecdsa.PublicKey // Public Key of the pss node requester, to receive encrypted data packets
+	InfoFrom         []byte           // TODO to be defined
+	Timestamp        int64
+	Nonce            uint64 // for the PoW
 }
 
 // Answer is the data packet that a node sends when answering to a Query data packet
 type Answer struct {
+	Version   string // version of the protocol
 	About     common.Address
 	From      common.Address
 	AgentId   Service

@@ -10,6 +10,8 @@ import (
 	"github.com/iden3/discovery-node/utils"
 )
 
+const DISCOVERYVERSION = "v0.0.1"
+
 // types of services
 const RELAYTYPE = "relay"
 const NAMESERVERTYPE = "nameserver"
@@ -25,9 +27,9 @@ var ANSWERMSG = utils.HashBytes([]byte("answermsg"))[:PREFIXLENGTH]
 // Service holds the data about a node service (can be a Relay, a NameServer, a DiscoveryNode, etc)
 type Service struct {
 	IdAddr      common.Address
-	PubK        *ecdsa.PublicKey // Public Key of the node, to receive encrypted data packets
+	PssPubK     *ecdsa.PublicKey // Public Key of the pss node, to receive encrypted data packets
 	Url         string
-	Type        string
+	Type        string // TODO define type specification (relay, nameserver, etc)
 	Mode        string // Active or Passive
 	ProofServer []byte // TODO ProofClaimServer data type (to be defined)
 }
@@ -41,12 +43,6 @@ type Id struct {
 // Bytes parses the Id to byte array
 func (id *Id) Bytes() ([]byte, error) {
 	// maybe in the future write a byte parser&unparser
-	// var b bytes.Buffer
-	// b.Write((id.IdAddr.Bytes()[:]))
-	// for _, s := range id.Services {
-	//         b.Write()
-	// }
-
 	return json.Marshal(id)
 }
 
@@ -59,13 +55,13 @@ func IdFromBytes(b []byte) (*Id, error) {
 
 // Query is the data packet that a node sends to discover data about one identity
 type Query struct {
-	About     common.Address // About Who
-	From      common.Address
-	InfoFrom  []byte // TODO to be defined
-	Timestamp int64
-	Nonce     uint64
-	PoW       [32]byte // TODO for the moment Keccak256
-	Signature []byte
+	Version          string         // version of the protocol
+	About            common.Address // About Who is requesting data (about which identity address)
+	Requester        common.Address
+	RequesterPssPubK *ecdsa.PublicKey // Public Key of the pss node requester, to receive encrypted data packets
+	InfoFrom         []byte           // TODO to be defined
+	Timestamp        int64
+	Nonce            uint64 // for the PoW
 }
 
 // Bytes parses the Query to byte array
@@ -92,6 +88,7 @@ func QueryFromBytes(b []byte) (*Query, error) {
 
 // Answer is the data packet that a node sends when answering to a Query data packet
 type Answer struct {
+	Version   string // version of the protocol
 	About     common.Address
 	From      common.Address
 	AgentId   Service

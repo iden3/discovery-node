@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"crypto/ecdsa"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -10,10 +11,10 @@ import (
 type DiscoveryService Service
 
 // NewDiscoveryService creates a new DiscoveryService
-func NewDiscoveryService(idAddr common.Address, pubK *ecdsa.PublicKey, url, mode string, proofServer []byte) (DiscoveryService, error) {
+func NewDiscoveryService(idAddr common.Address, pssPubK *ecdsa.PublicKey, url, mode string, proofServer []byte) (DiscoveryService, error) {
 	d := DiscoveryService{
 		IdAddr:      idAddr,
-		PubK:        pubK,
+		PssPubK:     pssPubK,
 		Url:         url,
 		Type:        DISCOVERYTYPE,
 		Mode:        mode, // Active or Passive
@@ -26,12 +27,13 @@ func NewDiscoveryService(idAddr common.Address, pubK *ecdsa.PublicKey, url, mode
 // DiscoverIdentity generates the Query about an identity and sends it over Swarm Pss
 func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (Query, error) {
 	q := Query{
-		About:     idAddr,
-		From:      d.IdAddr,
-		InfoFrom:  []byte{},
-		Nonce:     0,
-		PoW:       [32]byte{}, // TODO
-		Signature: []byte{},   // TODO
+		Version:     DISCOVERYVERSION,
+		About:       idAddr,
+		From:        d.IdAddr,
+		FromPssPubK: &ecdsa.PublicKey{},
+		InfoFrom:    []byte{},
+		Timestamp:   time.Now.Unix(),
+		Nonce:       0,
 	}
 
 	// TODO calculate PoW
@@ -48,10 +50,12 @@ func (d *DiscoveryService) NewAnswerPacket(q Query) (Answer, error) {
 
 	// generate the answer data packet
 	answer := Answer{
+		Version:   DISCOVERYVERSION,
 		About:     q.About,
 		From:      d.IdAddr,
 		AgentId:   Service(*d),
 		Services:  []Service{}, // TODO data related to the requested idAddr
+		Timestamp: time.Now.Unix(),
 		Signature: []byte{},
 	}
 
