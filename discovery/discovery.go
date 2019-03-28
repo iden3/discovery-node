@@ -27,12 +27,12 @@ func NewDiscoveryService(idAddr common.Address, pssPubK *ecdsa.PublicKey, url, m
 }
 
 // DiscoverIdentity generates the Query about an identity and sends it over Swarm Pss
-func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (Query, error) {
-	q := Query{
+func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (*Query, error) {
+	q := &Query{
 		Version:          DISCOVERYVERSION,
 		AboutId:          idAddr,
 		RequesterId:      d.IdAddr,
-		RequesterPssPubK: PubK{},
+		RequesterPssPubK: d.PssPubK,
 		InfoFrom:         []byte{},
 		Timestamp:        time.Now().Unix(),
 		Nonce:            0,
@@ -47,14 +47,14 @@ func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (Query, error) 
 
 // AnswerRequest generates and returns the answer for a Query request for which knows the answer
 // first, the Discovery Node will check if knows the answer
-func (d *DiscoveryService) NewAnswerPacket(q *Query, id *Id) (Answer, error) {
+func (d *DiscoveryService) NewAnswerPacket(q *Query, id *Id) (*Answer, error) {
 	// check that the query and id are about the same idaddr
 	if !bytes.Equal(q.AboutId.Bytes(), id.IdAddr.Bytes()) {
-		return Answer{}, errors.New("resolved idAddr is not the same than query.IdAddr")
+		return nil, errors.New("resolved idAddr is not the same than query.IdAddr")
 	}
 
 	// generate the answer data packet
-	answer := Answer{
+	answer := &Answer{
 		Version:   DISCOVERYVERSION,
 		AboutId:   q.AboutId,
 		FromId:    d.IdAddr,

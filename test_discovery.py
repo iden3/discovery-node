@@ -24,6 +24,13 @@ t.rStatus("post id0 (" + id0["idAddr"] + ") to Node0 ", r)
 time.sleep(1)
 
 
+# get the data from the id0, as the discovery-node don't have the id data, will ask for it over Pss Swarm network
+r = requests.get(URL1 + "/id/" + id0["idAddr"])
+t.rStatus("get id0 (" + id0["idAddr"] + ") from Node1 ", r)
+
+time.sleep(1)
+
+# get again the data from the id0, this time, the discovery-node will return it from its db cache
 r = requests.get(URL1 + "/id/" + id0["idAddr"])
 t.rStatus("get id0 (" + id0["idAddr"] + ") from Node1 ", r)
 

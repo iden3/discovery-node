@@ -7,8 +7,8 @@ Draft implementation of `discovery-node` of the decentralized discovery protocol
 ![network00](https://raw.githubusercontent.com/iden3/discovery-node/master/docs/network00.png "network00")
 
 Types of node:
-- `gateway` (`passive`): are the nodes that only perform petitions, acting as gateways to the discovery network
-- `active`: are the nodes that are answering requests
+- `gateway` (`passive`): are the nodes that only perform petitions, acting as gateways to the discovery network. This node can be trustless, as all the data that gets from the network and that is returned to its petitions, have the proofs of validity (merkleproofs)
+- `active`: are the nodes that are answering requests, each identity trusts its active discovery-node
 
 
 #### Node Storage
@@ -63,7 +63,7 @@ Each data packet that is sent over the network, goes with a `ProofOfWork`, and a
 // Service holds the data about a node service (can be a Relay, a NameServer, a DiscoveryNode, etc)
 type Service struct {
 	IdAddr      common.Address
-	PssPubK     *ecdsa.PublicKey // Public Key of the pss node, to receive encrypted data packets
+	PssPubK     PubK // Public Key of the pss node, to receive encrypted data packets
 	Url         string
 	Type        string
 	Mode        string // Active or Passive
@@ -73,10 +73,10 @@ type Service struct {
 // Query is the data packet that a node sends to discover data about one identity
 type Query struct {
 	Version          string         // version of the protocol
-	About            common.Address // About Who is requesting data (about which identity address)
-	Requester        common.Address
-	RequesterPssPubK *ecdsa.PublicKey // Public Key of the pss node requester, to receive encrypted data packets
-	InfoFrom         []byte           // TODO to be defined
+	AboutId          common.Address // About Who is requesting data (about which identity address)
+	RequesterId      common.Address
+	RequesterPssPubK PubK   // Public Key of the pss node requester, to receive encrypted data packets
+	InfoFrom         []byte // TODO to be defined
 	Timestamp        int64
 	Nonce            uint64 // for the PoW
 }
@@ -84,8 +84,8 @@ type Query struct {
 // Answer is the data packet that a node sends when answering to a Query data packet
 type Answer struct {
 	Version   string // version of the protocol
-	About     common.Address
-	From      common.Address
+	AboutId   common.Address
+	FromId    common.Address
 	AgentId   Service
 	Services  []Service
 	Timestamp int64

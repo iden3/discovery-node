@@ -101,8 +101,8 @@ func RunNode() (*NodeSrv, error) {
 	go func() {
 		for {
 			pmsg := <-node.sn.PssTopics[config.C.Pss.Topic].Delivery
-			fmt.Print("[MSG RECEIVED]: ")
-			color.Yellow(string(pmsg.Msg))
+			// fmt.Print("[MSG RECEIVED]: ")
+			// color.Yellow(string(pmsg.Msg))
 
 			msgBytes, err := hex.DecodeString(string(pmsg.Msg))
 			if err != nil {
@@ -146,8 +146,8 @@ func (node *NodeSrv) DiscoverId(idAddr common.Address) (*discovery.Id, error) {
 	if err != errors.ErrNotFound {
 		// the node has the packet
 		answer, err := discovery.AnswerFromBytes(answerBytes)
-		color.Cyan("node has a copy of the id data")
-		if err == nil && answer.Timestamp < time.Now().Unix()-config.C.DiscoverFreshTimeout {
+		// color.Cyan("node has a copy of the id data")
+		if err == nil && answer.Timestamp > time.Now().Unix()-config.C.DiscoverFreshTimeout {
 			// the data is a fresh copy
 			// set id data structure from answer
 			color.Cyan("node has a fresh copy of the id data")
@@ -200,23 +200,20 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		}
 		// TODO check query packet (PoW, Signature, etc)
 
-		fmt.Println("received QUERY msg packet asking for " + query.AboutId.Hex())
-
 		id, err := node.ResolveId(query.AboutId)
 		if err != nil {
 			color.Yellow("received Query msg packet asking for id " + query.AboutId.Hex() + ", and is not in this node")
 			return err
 		}
-		color.Cyan("received Query msg packet asking for id " + query.AboutId.Hex() + ", and is in this node")
-		fmt.Print("id data found in this node: ")
-		fmt.Println(id)
+		color.Cyan("-> received QUERY msg packet asking for id " + query.AboutId.Hex() + ", and the id data is in this node")
+		fmt.Print("id data found in this node: " + id.IdAddr.Hex())
 
 		// return id to the requester
 		err = node.AnswerId(query, id)
 
 		return nil
 	case hex.EncodeToString(discovery.ANSWERMSG):
-		color.Green("msg ANSWER received")
+		// color.Green("msg ANSWER received")
 		answer, err := discovery.AnswerFromBytes(msg)
 		if err != nil {
 			return err
@@ -224,12 +221,12 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		fmt.Println(answer)
 		// TODO check query packet (PoW, Signature, etc)
 
-		// TODO store data
-		// fmt.Println(answer)
+		// store data in dbAnswCache
 		answerBytes, err := answer.Bytes()
 		if err != nil {
 			return err
 		}
+		color.Cyan("-> ANSWER received about " + answer.AboutId.Hex() + ", data stored in dbAnswCache")
 		node.dbAnswCache.Put(answer.AboutId.Bytes(), answerBytes)
 		return nil
 	default:
