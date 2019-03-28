@@ -13,9 +13,10 @@ import (
 type DiscoveryService Service
 
 // NewDiscoveryService creates a new DiscoveryService
-func NewDiscoveryService(idAddr common.Address, pssPubK *ecdsa.PublicKey, url, mode string, proofService []byte) (DiscoveryService, error) {
+func NewDiscoveryService(idAddr common.Address, kademliaAddr []byte, pssPubK *ecdsa.PublicKey, url, mode string, proofService []byte) (DiscoveryService, error) {
 	d := DiscoveryService{
 		IdAddr:       idAddr,
+		KademliaAddr: kademliaAddr,
 		PssPubK:      PubK{*pssPubK},
 		Url:          url,
 		Type:         DISCOVERYTYPE,
@@ -32,6 +33,7 @@ func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (*Query, error)
 		Version:          DISCOVERYVERSION,
 		AboutId:          idAddr,
 		RequesterId:      d.IdAddr,
+		RequesterKAddr:   d.KademliaAddr,
 		RequesterPssPubK: d.PssPubK,
 		InfoFrom:         []byte{},
 		Timestamp:        time.Now().Unix(),

@@ -95,9 +95,8 @@ func init() {
 		ProofService: []byte{},
 	}
 	serviceRelay = Service{
-		IdAddr: addr3,
-		// PssPubK:     PubK{ecdsa.PublicKey{}},
-		PssPubK:      pubK1,
+		IdAddr:       addr3,
+		PssPubK:      pubK3,
 		Url:          "https://relay.domain.eth",
 		Type:         "iden3-relay",
 		Mode:         "",

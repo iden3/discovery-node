@@ -7,11 +7,11 @@ import (
 )
 
 func TestNewDiscoveryService(t *testing.T) {
-	_, err := NewDiscoveryService(addr0, &pubK0.PublicKey, "url", "Active", []byte{})
+	_, err := NewDiscoveryService(addr0, []byte{}, &pubK0.PublicKey, "url", "Active", []byte{})
 	assert.Nil(t, err)
 }
 func TestNewQueryPacket(t *testing.T) {
-	dscsrv, err := NewDiscoveryService(addr0, &pubK0.PublicKey, "url", "Active", []byte{})
+	dscsrv, err := NewDiscoveryService(addr0, []byte{}, &pubK0.PublicKey, "url", "Active", []byte{})
 	assert.Nil(t, err)
 	q, err := dscsrv.NewQueryPacket(addr1)
 	assert.Nil(t, err)
@@ -24,7 +24,7 @@ func TestNewQueryPacket(t *testing.T) {
 	assert.Equal(t, q, qFromBytes)
 }
 func TestNewAnswerPacket(t *testing.T) {
-	dscsrv, err := NewDiscoveryService(addr0, &pubK0.PublicKey, "url", "Active", []byte{})
+	dscsrv, err := NewDiscoveryService(addr0, []byte{}, &pubK0.PublicKey, "url", "Active", []byte{})
 	assert.Nil(t, err)
 	query, err := dscsrv.NewQueryPacket(addr1)
 	assert.Nil(t, err)

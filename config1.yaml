@@ -7,9 +7,9 @@ ports:
 datadir: "./tmp/node1"
 dbpath: "./tmp/node1/iddb"
 pss:
-        kind: "sym"
+        kind: "raw"
         key: "key"
         topic: "discoverytest"
         loglevel: "critical"
-discoverfreshtimeout: 1000000
+discoverfreshtimeout: 10
 mode: "ACTIVE"

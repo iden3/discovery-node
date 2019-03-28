@@ -1,11 +1,11 @@
 ports:
-        api: 3000
-        websockets: 3001
-        httprpc: 3002
-        bzz: 3003
-        p2p: 3004
-datadir: "./tmp/node0"
-dbpath: "./tmp/node0/iddb"
+        api: 5000
+        websockets: 5001
+        httprpc: 5002
+        bzz: 5003
+        p2p: 5004
+datadir: "./tmp/node2"
+dbpath: "./tmp/node2/iddb"
 pss:
         kind: "raw"
         key: "key"

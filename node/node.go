@@ -67,23 +67,24 @@ func RunNode() (*NodeSrv, error) {
 	sn.LogLevel = config.C.Pss.LogLevel
 
 	publicKey := privateKey.Public()
+	fmt.Print("pubK: ")
+	color.Cyan(utils.PublicKeyToString(publicKey))
+	// fmt.Println("pubK", sn.PssPubKey) // is the same than publicKey, with 0x04 at the beginning
+	publicKeyECDSA := *publicKey.(*ecdsa.PublicKey)
+	addr := crypto.PubkeyToAddress(publicKeyECDSA)
+	fmt.Println(addr.Hex())
 
 	err = sn.Init()
 	if err != nil {
 		color.Red(err.Error())
 		os.Exit(0)
 	}
-	sn.PssSub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, "")
+	// sn.PssSub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, "")
+	fmt.Println("kad addr: ", string(sn.Pss.Kademlia.BaseAddr()))
+	sn.PssSub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, string(sn.Pss.Kademlia.BaseAddr()))
 	// defer sn.PssTopics[config.C.Pss.Topic].Unregister()
 
-	fmt.Print("pubK: ")
-	color.Cyan(utils.PublicKeyToString(publicKey))
-	// fmt.Println("pubK", sn.PssPubKey) // is the same than publicKey, with 0x04 at the beginning
-
-	publicKeyECDSA := *publicKey.(*ecdsa.PublicKey)
-	addr := crypto.PubkeyToAddress(publicKeyECDSA)
-
-	dscsrv, err := discovery.NewDiscoveryService(addr, &publicKeyECDSA, "url", "Active", []byte{})
+	dscsrv, err := discovery.NewDiscoveryService(addr, sn.Pss.Kademlia.BaseAddr(), &publicKeyECDSA, "url", config.C.Mode, []byte{})
 	if err != nil {
 		color.Red(err.Error())
 		os.Exit(0)
@@ -103,7 +104,6 @@ func RunNode() (*NodeSrv, error) {
 			pmsg := <-node.sn.PssTopics[config.C.Pss.Topic].Delivery
 			// fmt.Print("[MSG RECEIVED]: ")
 			// color.Yellow(string(pmsg.Msg))
-
 			msgBytes, err := hex.DecodeString(string(pmsg.Msg))
 			if err != nil {
 				color.Red(err.Error())
@@ -135,7 +135,6 @@ func (node *NodeSrv) DiscoverId(idAddr common.Address) (*discovery.Id, error) {
 	// check if is an own identity that this node holds
 	idBytes, err := node.dbOwnIds.Get(idAddr.Bytes())
 	if err != errors.ErrNotFound {
-		fmt.Println("node.go:l119 err: " + err.Error())
 		id, err := discovery.IdFromBytes(idBytes)
 		return id, err
 	}
@@ -203,22 +202,25 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		id, err := node.ResolveId(query.AboutId)
 		if err != nil {
 			color.Yellow("received Query msg packet asking for id " + query.AboutId.Hex() + ", and is not in this node")
-			return err
+			return nil
 		}
 		color.Cyan("-> received QUERY msg packet asking for id " + query.AboutId.Hex() + ", and the id data is in this node")
-		fmt.Print("id data found in this node: " + id.IdAddr.Hex())
+		fmt.Println("id data found in this node: " + id.IdAddr.Hex())
 
 		// return id to the requester
-		err = node.AnswerId(query, id)
+		err = node.AnswerAboutId(query, id)
+		if err != nil {
+			color.Red("error on answering: " + err.Error())
+		}
 
 		return nil
 	case hex.EncodeToString(discovery.ANSWERMSG):
-		// color.Green("msg ANSWER received")
+		color.Green("msg ANSWER received")
 		answer, err := discovery.AnswerFromBytes(msg)
 		if err != nil {
 			return err
 		}
-		fmt.Println(answer)
+		// fmt.Println(answer)
 		// TODO check query packet (PoW, Signature, etc)
 
 		// store data in dbAnswCache
@@ -237,7 +239,7 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 
 }
 
-func (node *NodeSrv) AnswerId(query *discovery.Query, id *discovery.Id) error {
+func (node *NodeSrv) AnswerAboutId(query *discovery.Query, id *discovery.Id) error {
 	answer, err := node.discsrv.NewAnswerPacket(query, id)
 	if err != nil {
 		return err
@@ -248,7 +250,7 @@ func (node *NodeSrv) AnswerId(query *discovery.Query, id *discovery.Id) error {
 		return err
 	}
 	msg := hex.EncodeToString(aBytes)
-	fmt.Println("Send Answer over Pss Swarm")
-	err = node.sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, msg, "")
+	fmt.Println("Send Answer over Pss Swarm, encrypted with pubK: " + query.RequesterPssPubK.String() + ", and kademlia addr: " + string(query.RequesterKAddr))
+	err = node.sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, msg, string(query.RequesterKAddr))
 	return err
 }

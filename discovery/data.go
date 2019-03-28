@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/iden3/discovery-node/utils"
 )
@@ -48,10 +49,16 @@ func (pubK *PubK) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (pubK *PubK) String() string {
+	publicKeyBytes := crypto.FromECDSAPub(&pubK.PublicKey)
+	return hexutil.Encode(publicKeyBytes)[4:]
+}
+
 // Service holds the data about a node service (can be a Relay, a NameServer, a DiscoveryNode, etc)
 type Service struct {
 	IdAddr       common.Address
-	PssPubK      PubK // Public Key of the pss node, to receive encrypted data packets
+	KademliaAddr []byte // Kademlia address
+	PssPubK      PubK   // Public Key of the pss node, to receive encrypted data packets
 	Url          string
 	Type         string // TODO define type specification (relay, nameserver, etc)
 	Mode         string // Active or Passive(gateway) (this only affects to discovery-node's type)
@@ -82,6 +89,7 @@ type Query struct {
 	Version          string         // version of the protocol
 	AboutId          common.Address // About Who is requesting data (about which identity address)
 	RequesterId      common.Address
+	RequesterKAddr   []byte // Kademlia address
 	RequesterPssPubK PubK   // Public Key of the pss node requester, to receive encrypted data packets
 	InfoFrom         []byte // TODO to be defined
 	Timestamp        int64
