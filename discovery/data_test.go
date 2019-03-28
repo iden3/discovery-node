@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"crypto/ecdsa"
+	"encoding/json"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -16,22 +17,22 @@ const privK3_hex = "e7f83fd5cdd1fa6ee0247262d5cbb61cfbba3a7300948a1a6063009b6c2b
 
 // 0 discovery-node requester keys
 var privK0 *ecdsa.PrivateKey
-var pubK0 *ecdsa.PublicKey
+var pubK0 PubK
 var addr0 common.Address
 
 // 1 discovery-node id_agent keys
 var privK1 *ecdsa.PrivateKey
-var pubK1 *ecdsa.PublicKey
+var pubK1 PubK
 var addr1 common.Address
 
 // 2 user id keys
 var privK2 *ecdsa.PrivateKey
-var pubK2 *ecdsa.PublicKey
+var pubK2 PubK
 var addr2 common.Address
 
 // 3 relay service keys
 var privK3 *ecdsa.PrivateKey
-var pubK3 *ecdsa.PublicKey
+var pubK3 PubK
 var addr3 common.Address
 
 var serviceNode0 Service
@@ -47,8 +48,8 @@ func init() {
 		panic(err)
 	}
 	pubK0_crypto := privK0.Public()
-	pubK0 = pubK0_crypto.(*ecdsa.PublicKey)
-	addr0 = crypto.PubkeyToAddress(*pubK0)
+	pubK0 = PubK{*pubK0_crypto.(*ecdsa.PublicKey)}
+	addr0 = crypto.PubkeyToAddress(pubK0.PublicKey)
 
 	// 1
 	privK1, err = crypto.HexToECDSA(privK1_hex)
@@ -56,8 +57,8 @@ func init() {
 		panic(err)
 	}
 	pubK1_crypto := privK1.Public()
-	pubK1 = pubK1_crypto.(*ecdsa.PublicKey)
-	addr1 = crypto.PubkeyToAddress(*pubK1)
+	pubK1 = PubK{*pubK1_crypto.(*ecdsa.PublicKey)}
+	addr1 = crypto.PubkeyToAddress(pubK1.PublicKey)
 
 	// 2
 	privK2, err = crypto.HexToECDSA(privK2_hex)
@@ -65,8 +66,8 @@ func init() {
 		panic(err)
 	}
 	pubK2_crypto := privK2.Public()
-	pubK2 = pubK2_crypto.(*ecdsa.PublicKey)
-	addr2 = crypto.PubkeyToAddress(*pubK2)
+	pubK2 = PubK{*pubK2_crypto.(*ecdsa.PublicKey)}
+	addr2 = crypto.PubkeyToAddress(pubK2.PublicKey)
 
 	// 3
 	privK3, err = crypto.HexToECDSA(privK3_hex)
@@ -74,33 +75,43 @@ func init() {
 		panic(err)
 	}
 	pubK3_crypto := privK3.Public()
-	pubK3 = pubK3_crypto.(*ecdsa.PublicKey)
-	addr3 = crypto.PubkeyToAddress(*pubK3)
+	pubK3 = PubK{*pubK3_crypto.(*ecdsa.PublicKey)}
+	addr3 = crypto.PubkeyToAddress(pubK3.PublicKey)
 
 	serviceNode0 = Service{
-		IdAddr:      addr0,
-		PssPubK:     pubK0,
-		Url:         "",
-		Type:        "discovery-node",
-		Mode:        "ACTIVE",
-		ProofServer: []byte{},
+		IdAddr:       addr0,
+		PssPubK:      pubK0,
+		Url:          "",
+		Type:         "discovery-node",
+		Mode:         "ACTIVE",
+		ProofService: []byte{},
 	}
 	serviceNode1 = Service{
-		IdAddr:      addr1,
-		PssPubK:     pubK1,
-		Url:         "",
-		Type:        "discovery-node",
-		Mode:        "ACTIVE",
-		ProofServer: []byte{},
+		IdAddr:       addr1,
+		PssPubK:      pubK1,
+		Url:          "",
+		Type:         "discovery-node",
+		Mode:         "ACTIVE",
+		ProofService: []byte{},
 	}
 	serviceRelay = Service{
-		IdAddr:      addr3,
-		PssPubK:     &ecdsa.PublicKey{},
-		Url:         "https://relay.domain.eth",
-		Type:        "iden3-relay",
-		Mode:        "",
-		ProofServer: []byte{},
+		IdAddr: addr3,
+		// PssPubK:     PubK{ecdsa.PublicKey{}},
+		PssPubK:      pubK1,
+		Url:          "https://relay.domain.eth",
+		Type:         "iden3-relay",
+		Mode:         "",
+		ProofService: []byte{},
 	}
+}
+
+func TestPubK(t *testing.T) {
+	mPubK0, err := json.Marshal(&pubK0)
+	assert.Nil(t, err)
+	var p PubK
+	err = json.Unmarshal(mPubK0, &p)
+	assert.Nil(t, err)
+	assert.Equal(t, pubK0, p)
 }
 
 func TestIdParser(t *testing.T) {
@@ -118,11 +129,12 @@ func TestIdParser(t *testing.T) {
 func TestQueryAnswer(t *testing.T) {
 
 	q := &Query{
-		Version:   "v0.0.1",
-		About:     addr2,
-		Requester: addr0,
-		InfoFrom:  []byte{},
-		Nonce:     0,
+		Version:          "v0.0.1",
+		AboutId:          addr2,
+		RequesterId:      addr0,
+		RequesterPssPubK: pubK0,
+		InfoFrom:         []byte{},
+		Nonce:            0,
 	}
 	qBytes, err := q.Bytes()
 	assert.Nil(t, err)
@@ -132,8 +144,8 @@ func TestQueryAnswer(t *testing.T) {
 	assert.Equal(t, q, qFromBytes)
 
 	a := &Answer{
-		About:     addr2,
-		From:      addr1,
+		AboutId:   addr2,
+		FromId:    addr1,
 		AgentId:   serviceNode1,
 		Services:  []Service{serviceRelay},
 		Signature: []byte{},

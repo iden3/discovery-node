@@ -13,14 +13,14 @@ import (
 type DiscoveryService Service
 
 // NewDiscoveryService creates a new DiscoveryService
-func NewDiscoveryService(idAddr common.Address, pssPubK *ecdsa.PublicKey, url, mode string, proofServer []byte) (DiscoveryService, error) {
+func NewDiscoveryService(idAddr common.Address, pssPubK *ecdsa.PublicKey, url, mode string, proofService []byte) (DiscoveryService, error) {
 	d := DiscoveryService{
-		IdAddr:      idAddr,
-		PssPubK:     pssPubK,
-		Url:         url,
-		Type:        DISCOVERYTYPE,
-		Mode:        mode, // Active or Passive
-		ProofServer: proofServer,
+		IdAddr:       idAddr,
+		PssPubK:      PubK{*pssPubK},
+		Url:          url,
+		Type:         DISCOVERYTYPE,
+		Mode:         mode, // Active or Passive
+		ProofService: proofService,
 	}
 
 	return d, nil
@@ -30,9 +30,9 @@ func NewDiscoveryService(idAddr common.Address, pssPubK *ecdsa.PublicKey, url, m
 func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (Query, error) {
 	q := Query{
 		Version:          DISCOVERYVERSION,
-		About:            idAddr,
-		Requester:        d.IdAddr,
-		RequesterPssPubK: &ecdsa.PublicKey{},
+		AboutId:          idAddr,
+		RequesterId:      d.IdAddr,
+		RequesterPssPubK: PubK{},
 		InfoFrom:         []byte{},
 		Timestamp:        time.Now().Unix(),
 		Nonce:            0,
@@ -49,15 +49,15 @@ func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (Query, error) 
 // first, the Discovery Node will check if knows the answer
 func (d *DiscoveryService) NewAnswerPacket(q *Query, id *Id) (Answer, error) {
 	// check that the query and id are about the same idaddr
-	if !bytes.Equal(q.About.Bytes(), id.IdAddr.Bytes()) {
+	if !bytes.Equal(q.AboutId.Bytes(), id.IdAddr.Bytes()) {
 		return Answer{}, errors.New("resolved idAddr is not the same than query.IdAddr")
 	}
 
 	// generate the answer data packet
 	answer := Answer{
 		Version:   DISCOVERYVERSION,
-		About:     q.About,
-		From:      d.IdAddr,
+		AboutId:   q.AboutId,
+		FromId:    d.IdAddr,
 		AgentId:   Service(*d),
 		Services:  id.Services, // TODO data related to the requested idAddr
 		Timestamp: time.Now().Unix(),

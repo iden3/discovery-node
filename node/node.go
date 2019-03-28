@@ -200,14 +200,14 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		}
 		// TODO check query packet (PoW, Signature, etc)
 
-		fmt.Println("received QUERY msg packet asking for " + query.About.Hex())
+		fmt.Println("received QUERY msg packet asking for " + query.AboutId.Hex())
 
-		id, err := node.ResolveId(query.About)
+		id, err := node.ResolveId(query.AboutId)
 		if err != nil {
-			color.Yellow("received Query msg packet asking for id " + query.About.Hex() + ", and is not in this node")
+			color.Yellow("received Query msg packet asking for id " + query.AboutId.Hex() + ", and is not in this node")
 			return err
 		}
-		color.Cyan("received Query msg packet asking for id " + query.About.Hex() + ", and is in this node")
+		color.Cyan("received Query msg packet asking for id " + query.AboutId.Hex() + ", and is in this node")
 		fmt.Print("id data found in this node: ")
 		fmt.Println(id)
 
@@ -230,7 +230,7 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		node.dbAnswCache.Put(answer.About.Bytes(), answerBytes)
+		node.dbAnswCache.Put(answer.AboutId.Bytes(), answerBytes)
 		return nil
 	default:
 		fmt.Println("received pss swarm packet, not recognized type")

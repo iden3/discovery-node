@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -25,29 +26,36 @@ const PREFIXLENGTH = 7
 var QUERYMSG = utils.HashBytes([]byte("querymsg"))[:PREFIXLENGTH]
 var ANSWERMSG = utils.HashBytes([]byte("answermsg"))[:PREFIXLENGTH]
 
+type PubK struct {
+	ecdsa.PublicKey
+}
+
+func (pubK *PubK) MarshalJSON() ([]byte, error) {
+	return json.Marshal(crypto.CompressPubkey(&pubK.PublicKey))
+}
+func (pubK *PubK) UnmarshalJSON(b []byte) error {
+	var bb []byte
+	err := json.Unmarshal(b, &bb)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	p, err := crypto.DecompressPubkey(bb)
+	if err != nil {
+		return err
+	}
+	pubK.PublicKey = *p
+	return nil
+}
+
 // Service holds the data about a node service (can be a Relay, a NameServer, a DiscoveryNode, etc)
 type Service struct {
-	IdAddr      common.Address
-	PssPubK     *ecdsa.PublicKey // Public Key of the pss node, to receive encrypted data packets
-	PssPubKCmpr []byte
-	Url         string
-	Type        string // TODO define type specification (relay, nameserver, etc)
-	Mode        string // Active or Passive(gateway) (this only affects to discovery-node's type)
-	ProofServer []byte // TODO ProofClaimServer data type (to be defined)
-}
-
-func (service Service) MarshalJSON() ([]byte, error) {
-	var err error
-	service.PssPubK, err = crypto.DecompressPubkey(service.PssPubKCmpr)
-	if err != nil {
-		return []byte{}, err
-	}
-	return json.Marshal(service)
-}
-
-func (service Service) UnmarshalJSON(b []byte) error {
-	service.PssPubKCmpr = crypto.CompressPubkey(service.PssPubK)
-	return nil
+	IdAddr       common.Address
+	PssPubK      PubK // Public Key of the pss node, to receive encrypted data packets
+	Url          string
+	Type         string // TODO define type specification (relay, nameserver, etc)
+	Mode         string // Active or Passive(gateway) (this only affects to discovery-node's type)
+	ProofService []byte // TODO ProofClaimService data type (to be defined)
 }
 
 // Id holds the data related to an identity
@@ -72,10 +80,10 @@ func IdFromBytes(b []byte) (*Id, error) {
 // Query is the data packet that a node sends to discover data about one identity
 type Query struct {
 	Version          string         // version of the protocol
-	About            common.Address // About Who is requesting data (about which identity address)
-	Requester        common.Address
-	RequesterPssPubK *ecdsa.PublicKey // Public Key of the pss node requester, to receive encrypted data packets
-	InfoFrom         []byte           // TODO to be defined
+	AboutId          common.Address // About Who is requesting data (about which identity address)
+	RequesterId      common.Address
+	RequesterPssPubK PubK   // Public Key of the pss node requester, to receive encrypted data packets
+	InfoFrom         []byte // TODO to be defined
 	Timestamp        int64
 	Nonce            uint64 // for the PoW
 }
@@ -105,8 +113,8 @@ func QueryFromBytes(b []byte) (*Query, error) {
 // Answer is the data packet that a node sends when answering to a Query data packet
 type Answer struct {
 	Version   string // version of the protocol
-	About     common.Address
-	From      common.Address
+	AboutId   common.Address
+	FromId    common.Address
 	AgentId   Service
 	Services  []Service
 	Timestamp int64
@@ -116,7 +124,7 @@ type Answer struct {
 // Bytes parses the Answer to byte array
 func (a *Answer) Id() *Id {
 	return &Id{
-		IdAddr:   a.About,
+		IdAddr:   a.AboutId,
 		Services: a.Services,
 	}
 }
