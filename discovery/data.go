@@ -27,6 +27,7 @@ const PREFIXLENGTH = 7
 var QUERYMSG = utils.HashBytes([]byte("querymsg"))[:PREFIXLENGTH]
 var ANSWERMSG = utils.HashBytes([]byte("answermsg"))[:PREFIXLENGTH]
 
+// PubK is a ecdsa.PublicKey with json marshal and unmarshal functions that convert the key into a byte array
 type PubK struct {
 	ecdsa.PublicKey
 }
@@ -87,6 +88,7 @@ func IdFromBytes(b []byte) (*Id, error) {
 // Query is the data packet that a node sends to discover data about one identity
 type Query struct {
 	Version          string         // version of the protocol
+	MsgId            string         // random msg id, to identify and relate Query and Answer
 	AboutId          common.Address // About Who is requesting data (about which identity address)
 	RequesterId      common.Address
 	RequesterKAddr   []byte // Kademlia address
@@ -121,6 +123,7 @@ func QueryFromBytes(b []byte) (*Query, error) {
 // Answer is the data packet that a node sends when answering to a Query data packet
 type Answer struct {
 	Version   string // version of the protocol
+	MsgId     string // random msg id, to identify and relate Query and Answer
 	AboutId   common.Address
 	FromId    common.Address
 	AgentId   Service

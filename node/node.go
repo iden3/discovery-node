@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
+	"github.com/gin-gonic/gin"
 	"github.com/iden3/discovery-node/config"
 	"github.com/iden3/discovery-node/db"
 	"github.com/iden3/discovery-node/discovery"
@@ -20,6 +21,8 @@ import (
 )
 
 const ACTIVENODETYPE = "ACTIVE"
+
+var conversations map[string]*gin.Context
 
 // NodeSrv contains the services of the node
 type NodeSrv struct {
@@ -33,6 +36,8 @@ type NodeSrv struct {
 // RunNode starts a new discovery node service
 func RunNode() (*NodeSrv, error) {
 	fmt.Println("initializing node")
+
+	conversations = make(map[string]*gin.Context)
 
 	if config.C.Mode == ACTIVENODETYPE {
 		fmt.Println("starting an " + ACTIVENODETYPE + " node")
@@ -129,7 +134,7 @@ func (node *NodeSrv) StoreId(id discovery.Id) error {
 }
 
 // DiscoverId checks if the nade has a fresh data from the id, if not, asks to the network for an idenity address
-func (node *NodeSrv) DiscoverId(idAddr common.Address) (*discovery.Id, error) {
+func (node *NodeSrv) DiscoverId(ginContext *gin.Context, idAddr common.Address) (*discovery.Id, error) {
 	fmt.Println("start DiscoverId function")
 	fmt.Println("checking if id is an own identity")
 	// check if is an own identity that this node holds
@@ -150,6 +155,9 @@ func (node *NodeSrv) DiscoverId(idAddr common.Address) (*discovery.Id, error) {
 			// the data is a fresh copy
 			// set id data structure from answer
 			color.Cyan("node has a fresh copy of the id data")
+
+			// send the answer to the client
+			ginContext.JSON(200, answer)
 			return answer.Id(), nil
 		}
 	}
@@ -162,6 +170,9 @@ func (node *NodeSrv) DiscoverId(idAddr common.Address) (*discovery.Id, error) {
 		return nil, err
 	}
 
+	// add query id to the conversations map
+	conversations[query.MsgId] = ginContext
+
 	// send the packet over Pss Swarm
 	qBytes, err := query.Bytes()
 	if err != nil {
@@ -170,6 +181,15 @@ func (node *NodeSrv) DiscoverId(idAddr common.Address) (*discovery.Id, error) {
 	msg := hex.EncodeToString(qBytes)
 	fmt.Println("Send Query over Pss Swarm")
 	err = node.sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, msg, "")
+
+	// wait until the answer is received and sent to the client
+	for {
+		if _, ok := conversations[query.MsgId]; !ok {
+			// once the conversations[query.MsgId] is deleted, this indicates that the answer packet is written in the http connection to the client, so can break the loop and finish the connection
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
 
 	return nil, err
 }
@@ -207,6 +227,8 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		color.Cyan("-> received QUERY msg packet asking for id " + query.AboutId.Hex() + ", and the id data is in this node")
 		fmt.Println("id data found in this node: " + id.IdAddr.Hex())
 
+		fmt.Print("query.MsgId: ")
+		color.Cyan(query.MsgId)
 		// return id to the requester
 		err = node.AnswerAboutId(query, id)
 		if err != nil {
@@ -223,6 +245,9 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		// fmt.Println(answer)
 		// TODO check query packet (PoW, Signature, etc)
 
+		fmt.Print("answer.MsgId: ")
+		color.Cyan(answer.MsgId)
+
 		// store data in dbAnswCache
 		answerBytes, err := answer.Bytes()
 		if err != nil {
@@ -230,6 +255,13 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		}
 		color.Cyan("-> ANSWER received about " + answer.AboutId.Hex() + ", data stored in dbAnswCache")
 		node.dbAnswCache.Put(answer.AboutId.Bytes(), answerBytes)
+
+		// send the answer to the client
+		fmt.Println("sending answer through gin context: " + answer.MsgId)
+		conversations[answer.MsgId].JSON(200, answer)
+		// remove from map
+		delete(conversations, answer.MsgId)
+
 		return nil
 	default:
 		fmt.Println("received pss swarm packet, not recognized type")
@@ -239,6 +271,7 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 
 }
 
+// AnswerAboutId sends (over Pss Swarm directly to the Requester Address) an Answer packet generated from a Query packet and an Id data
 func (node *NodeSrv) AnswerAboutId(query *discovery.Query, id *discovery.Id) error {
 	answer, err := node.discsrv.NewAnswerPacket(query, id)
 	if err != nil {
@@ -251,6 +284,8 @@ func (node *NodeSrv) AnswerAboutId(query *discovery.Query, id *discovery.Id) err
 	}
 	msg := hex.EncodeToString(aBytes)
 	fmt.Println("Send Answer over Pss Swarm, encrypted with pubK: " + query.RequesterPssPubK.String() + ", and kademlia addr: " + string(query.RequesterKAddr))
+
+	// send a direct message over Pss Swarm
 	err = node.sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, msg, string(query.RequesterKAddr))
 	return err
 }

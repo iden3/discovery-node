@@ -42,12 +42,8 @@ func handleStoreId(c *gin.Context) {
 func handleDiscoverId(c *gin.Context) {
 	idAddrStr := c.Param("idaddr")
 	idAddr := common.HexToAddress(idAddrStr)
-	_, err := nodesrv.DiscoverId(idAddr)
+	_, err := nodesrv.DiscoverId(c, idAddr)
 	if err != nil {
 		fail(c, "error storing id", err)
 	}
-	// color.Cyan("id discovered: " + id.IdAddr.Hex())
-	c.JSON(200, gin.H{
-		"foo": "bar",
-	})
 }

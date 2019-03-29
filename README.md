@@ -24,8 +24,12 @@ Roles:
 - `Requester`: `discovery-node` that wants to know about one identity
 - `Id_Agent`: `discovery-node` that knows the info about the identity, and is listening in `Swarm Pss` in the topic `id_discovery`
 
+Flow when a `discovery-node` receives an Id discover request:
+
+![flow00](https://raw.githubusercontent.com/iden3/discovery-node/master/docs/flow00.png "flow00")
+
 Discovery flow:
-1. `discovery-node` receives an http petition from the `user` asking for an identity info, from now, the `discovery-node` will be the `Requester`
+1. `discovery-node` receives an https petition from the `user` asking for an identity info, from now, this `discovery-node` will be the `Requester`
 2. `Requester` checks if already knows a fresh copy of the data packet of the identity
 	- in case that has the data, checks that the `timestamp` is not too old
 	- if the data is fresh, returns it and finishes the process
@@ -55,26 +59,28 @@ Requester                       Id_Agent
 ```
 
 
-
 #### Data structures
 Each data packet that is sent over the network, goes with a `ProofOfWork`, and a `Signature` of the emmiter.
 
 ```go
 // Service holds the data about a node service (can be a Relay, a NameServer, a DiscoveryNode, etc)
 type Service struct {
-	IdAddr      common.Address
-	PssPubK     PubK // Public Key of the pss node, to receive encrypted data packets
-	Url         string
-	Type        string
-	Mode        string // Active or Passive
-	ProofServer []byte // ProofClaimServer
+	IdAddr       common.Address
+	KademliaAddr []byte // Kademlia address
+	PssPubK      PubK   // Public Key of the pss node, to receive encrypted data packets
+	Url          string
+	Type         string // TODO define type specification (relay, nameserver, etc)
+	Mode         string // Active or Passive(gateway) (this only affects to discovery-node's type)
+	ProofService []byte // TODO ProofClaimService data type (to be defined)
 }
 
 // Query is the data packet that a node sends to discover data about one identity
 type Query struct {
 	Version          string         // version of the protocol
+	MsgId            string         // random msg id, to identify and relate Query and Answer
 	AboutId          common.Address // About Who is requesting data (about which identity address)
 	RequesterId      common.Address
+	RequesterKAddr   []byte // Kademlia address
 	RequesterPssPubK PubK   // Public Key of the pss node requester, to receive encrypted data packets
 	InfoFrom         []byte // TODO to be defined
 	Timestamp        int64
@@ -84,6 +90,7 @@ type Query struct {
 // Answer is the data packet that a node sends when answering to a Query data packet
 type Answer struct {
 	Version   string // version of the protocol
+	MsgId     string // random msg id, to identify and relate Query and Answer
 	AboutId   common.Address
 	FromId    common.Address
 	AgentId   Service
@@ -108,6 +115,13 @@ go run *.go --config config1.yaml start
 ```
 
 ### Test
+Unit tests:
 ```
 go test ./...
 ```
+
+Flow manually test:
+```
+bash run-tmux-demo.sh
+```
+

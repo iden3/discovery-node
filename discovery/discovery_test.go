@@ -33,7 +33,7 @@ func TestNewAnswerPacket(t *testing.T) {
 		IdAddr:   addr1,
 		Services: []Service{},
 	}
-	_, err = dscsrv.NewAnswerPacket(query, id)
+	answer, err := dscsrv.NewAnswerPacket(query, id)
 	assert.Nil(t, err)
 
 	// check that if the id.IdAddr is different than query.AboutId, gives an error
@@ -41,4 +41,5 @@ func TestNewAnswerPacket(t *testing.T) {
 	_, err = dscsrv.NewAnswerPacket(query, id)
 	assert.NotNil(t, err)
 
+	assert.Equal(t, query.MsgId, answer.MsgId)
 }

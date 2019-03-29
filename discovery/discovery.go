@@ -3,6 +3,8 @@ package discovery
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"time"
 
@@ -27,10 +29,30 @@ func NewDiscoveryService(idAddr common.Address, kademliaAddr []byte, pssPubK *ec
 	return d, nil
 }
 
+func randBytes(n int) ([]byte, error) {
+	b := make([]byte, n)
+	_, err := rand.Read(b)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+func randStr(n int) (string, error) {
+	b, err := randBytes(n)
+	return base64.URLEncoding.EncodeToString(b), err
+}
+
 // DiscoverIdentity generates the Query about an identity and sends it over Swarm Pss
 func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (*Query, error) {
+
+	msgId, err := randStr(10)
+	if err != nil {
+		return nil, err
+	}
+
 	q := &Query{
 		Version:          DISCOVERYVERSION,
+		MsgId:            msgId,
 		AboutId:          idAddr,
 		RequesterId:      d.IdAddr,
 		RequesterKAddr:   d.KademliaAddr,
@@ -58,6 +80,7 @@ func (d *DiscoveryService) NewAnswerPacket(q *Query, id *Id) (*Answer, error) {
 	// generate the answer data packet
 	answer := &Answer{
 		Version:   DISCOVERYVERSION,
+		MsgId:     q.MsgId,
 		AboutId:   q.AboutId,
 		FromId:    d.IdAddr,
 		AgentId:   Service(*d),
