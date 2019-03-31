@@ -35,9 +35,11 @@ time.sleep(1)
 # get again the data from the id0, this time, the discovery-node will return it from its db cache
 r = requests.get(URL1 + "/id/" + id0["idAddr"])
 t.rStatus("get id0 (" + id0["idAddr"] + ") from Node1 ", r)
-jsonR = r.json()
-print(jsonR)
+jsonR2 = r.json()
+print(jsonR2)
+
+t.equal("checking that first and second get of the identity returns the same", jsonR, jsonR2)
 
 t.printScores()
 
-print("single identity discover petition:\ncurl http://127.0.0.1:4000/id/0x47a2b2353f1a55e4c975b742a7323c027160b4e3 | jq")
+print("to make another single identity discover petition, use:\ncurl http://127.0.0.1:4000/id/0x47a2b2353f1a55e4c975b742a7323c027160b4e3 | jq")

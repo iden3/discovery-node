@@ -20,6 +20,8 @@ import (
 	swarm "github.com/vocdoni/go-dvote/net/swarm"
 )
 
+// TIMEOUTQUERYMSG is the maximum amount of time that the node will wait to receive the Answer to a Query packet
+const TIMEOUTQUERYMSG = 10000 // 10 seconds
 const ACTIVENODETYPE = "ACTIVE"
 
 var conversations map[string]*gin.Context
@@ -182,12 +184,25 @@ func (node *NodeSrv) DiscoverId(ginContext *gin.Context, idAddr common.Address) 
 	fmt.Println("Send Query over Pss Swarm")
 	err = node.sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, msg, "")
 
-	// wait until the answer is received and sent to the client
+	// wait until the answer is received and sent to the client, or until the timeout is overpassed
 	for {
+		// check if the conversations[query.MsgId] is already answered
 		if _, ok := conversations[query.MsgId]; !ok {
 			// once the conversations[query.MsgId] is deleted, this indicates that the answer packet is written in the http connection to the client, so can break the loop and finish the connection
 			break
 		}
+
+		// check timeout of the msg, if it's too old, remove it
+		// as the query.Timestamp is set by the own node, can not be cheated
+		if query.Timestamp+TIMEOUTQUERYMSG < time.Now().Unix() {
+			fmt.Println("timeout waiting for Answer packet reached, conversations[query.MsgId] deleted. query.MsgId: " + query.MsgId)
+			// send error http msg
+			conversations[query.MsgId].JSON(500, "error: answer timeout")
+			// delete
+			delete(conversations, query.MsgId)
+			break
+		}
+
 		time.Sleep(500 * time.Millisecond)
 	}
 
@@ -256,6 +271,11 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		color.Cyan("-> ANSWER received about " + answer.AboutId.Hex() + ", data stored in dbAnswCache")
 		node.dbAnswCache.Put(answer.AboutId.Bytes(), answerBytes)
 
+		// check if the conversation[answer.MsgId] is still opened
+		if _, ok := conversations[answer.MsgId]; !ok {
+			color.Yellow("answer received, but conversation[answer.MsgId] is not open")
+			return nil
+		}
 		// send the answer to the client
 		fmt.Println("sending answer through gin context: " + answer.MsgId)
 		conversations[answer.MsgId].JSON(200, answer)
