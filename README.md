@@ -37,8 +37,8 @@ Discovery flow:
 3. `Requester` creates `Query` packet asking for who is the relay of identity `john@domain.eth`
 4. `Requester` sends the `Query` packet into the `Swarm Pss` network under the topic `id_discovery`
 5. the `Id_Agent` server of that identity will receive the `Query` packet and will see that is a user under its umbrella
-6. `Id_Agent` server will answer the `Answer` packet (with the proofs of validity) to the `Requester`
-7. `Requester` receives the `Answer` packet, and now knows how to reach the Relay node of `john@domain.eth`, and can answer to the `user`
+6. `Id_Agent` server will answer the `Answer` packet (with the proofs of validity, signature, etc) to the `Requester`
+7. `Requester` receives the `Answer` packet (verifies the signature), and now knows how to reach the Relay node of `john@domain.eth`, and can answer to the `user`
 
 ```
 Requester                       Id_Agent

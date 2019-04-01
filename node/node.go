@@ -1,6 +1,7 @@
 package node
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
@@ -23,7 +24,7 @@ import (
 )
 
 // TIMEOUTQUERYMSG is the maximum amount of time that the node will wait to receive the Answer to a Query packet
-const TIMEOUTQUERYMSG = 10000 // 10 seconds
+const TIMEOUTQUERYMSG = 10 // 10 seconds
 const ACTIVENODETYPE = "ACTIVE"
 
 var conversations map[string]*gin.Context
@@ -208,6 +209,7 @@ func (node *NodeSrv) DiscoverId(ginContext *gin.Context, idAddr common.Address) 
 
 		// check timeout of the msg, if it's too old, remove it
 		// as the query.Timestamp is set by the own node, can not be cheated
+		// fmt.Println("query timeout to stop waiting for answer:", query.Timestamp+TIMEOUTQUERYMSG-time.Now().Unix())
 		if query.Timestamp+TIMEOUTQUERYMSG < time.Now().Unix() {
 			fmt.Println("timeout waiting for Answer packet reached, conversations[query.MsgId] deleted. query.MsgId: " + query.MsgId)
 			// send error http msg
@@ -271,8 +273,27 @@ func (node *NodeSrv) HandleMsg(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		// fmt.Println(answer)
-		// TODO check query packet (PoW, Signature, etc)
+
+		// check answer packet signature
+		answerCopy := answer.Copy()
+		answerCopy.Signature = []byte{}
+		answerCopyBytes, err := answerCopy.Bytes()
+		if err != nil {
+			return err
+		}
+		verified := utils.VerifySignature(answer.FromId, answer.Signature, answerCopyBytes)
+		if !verified {
+			// signature can not be verified, don't close http connection (conversations[answer.MsgId]), as the real answer can come after this fake answer
+			color.Yellow("Answer packet signature can not be verified")
+			return errors.New("Answer packet signature can not be verified")
+		}
+
+		// check answer.AgentId.IdAddr == answer.FromId
+		if !bytes.Equal(answer.AgentId.IdAddr.Bytes(), answer.FromId.Bytes()) {
+			return errors.New("answer.AgentId.IdAddr != answer.FromId")
+		}
+
+		// TODO check answer.AgentId.ProofService
 
 		fmt.Print("answer.MsgId: ")
 		color.Cyan(answer.MsgId)
@@ -313,6 +334,18 @@ func (node *NodeSrv) AnswerAboutId(query *discovery.Query, id *discovery.Id) err
 	}
 
 	aBytes, err := answer.Bytes()
+	if err != nil {
+		return err
+	}
+	// sign packet
+	node.ks.Unlock(node.acc, config.C.KeyStore.Password)
+	sig, err := node.SignBytes(aBytes)
+	if err != nil {
+		return err
+	}
+	answer.Signature = sig
+
+	aBytes, err = answer.Bytes()
 	if err != nil {
 		return err
 	}

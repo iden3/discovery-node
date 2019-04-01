@@ -152,6 +152,19 @@ func (a *Answer) Bytes() ([]byte, error) {
 	return r, nil
 }
 
+func (a *Answer) Copy() *Answer {
+	return &Answer{
+		Version:   a.Version,
+		MsgId:     a.MsgId,
+		AboutId:   a.AboutId,
+		FromId:    a.FromId,
+		AgentId:   a.AgentId,
+		Services:  a.Services,
+		Timestamp: a.Timestamp,
+		Signature: a.Signature,
+	}
+}
+
 // AnswerFromBytes parses Answer data structure from a byte array
 func AnswerFromBytes(b []byte) (*Answer, error) {
 	if !bytes.Equal(b[:PREFIXLENGTH], ANSWERMSG) {

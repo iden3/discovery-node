@@ -78,7 +78,5 @@ func (d *DiscoveryService) NewAnswerPacket(q *Query, id *Id) (*Answer, error) {
 		Signature: []byte{},
 	}
 
-	// TODO sign packet
-
 	return answer, nil
 }
