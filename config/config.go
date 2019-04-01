@@ -7,9 +7,13 @@ import (
 
 // Config holds the config file data
 type Config struct {
-	Datadir string
-	DbPath  string
-	Ports   struct {
+	Datadir  string
+	DbPath   string
+	KeyStore struct {
+		Path     string
+		Password string
+	}
+	Ports struct {
 		API        int
 		WebSockets int
 		HTTPRPC    int

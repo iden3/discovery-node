@@ -1,3 +1,6 @@
+keystore:
+        path: "./tmp/node1/keystore"
+        password: "secret"
 ports:
         api: 4000
         websockets: 4001

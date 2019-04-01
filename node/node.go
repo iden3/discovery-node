@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fatih/color"
@@ -33,6 +35,8 @@ type NodeSrv struct {
 	dbOwnIds    *db.Db
 	dbAnswCache *db.Db
 	sn          *swarm.SimplePss
+	ks          *keystore.KeyStore
+	acc         accounts.Account
 }
 
 // RunNode starts a new discovery node service
@@ -97,12 +101,22 @@ func RunNode() (*NodeSrv, error) {
 		os.Exit(0)
 	}
 
+	// create new keystore with the privK, and new account
+	ks := keystore.NewKeyStore(config.C.KeyStore.Path, keystore.StandardScryptN, keystore.StandardScryptP)
+	acc, err := ks.ImportECDSA(privateKey, config.C.KeyStore.Password)
+	if err != nil {
+		color.Red(err.Error())
+		os.Exit(0)
+	}
+
 	node := &NodeSrv{
 		discsrv:     dscsrv,
 		db:          sto,
 		dbOwnIds:    stoIdentities,
 		dbAnswCache: stoAnswers,
 		sn:          sn,
+		ks:          ks,
+		acc:         acc,
 	}
 
 	fmt.Println("listening pss swarm, topic: " + config.C.Pss.Topic)

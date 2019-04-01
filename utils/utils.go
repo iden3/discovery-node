@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"log"
 
 	gocrypto "crypto"
@@ -25,4 +26,8 @@ func PublicKeyToString(publicKey gocrypto.PublicKey) string {
 func HashBytes(b ...[]byte) []byte {
 	h := crypto.Keccak256(b...)
 	return h
+}
+func EthHash(b []byte) []byte {
+	header := fmt.Sprintf("%s%d", "\x19Ethereum Signed Message:\n", len(b))
+	return HashBytes([]byte(header), b)
 }

@@ -3,8 +3,6 @@ package discovery
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"time"
 
@@ -29,22 +27,13 @@ func NewDiscoveryService(idAddr common.Address, kademliaAddr []byte, pssPubK *ec
 	return d, nil
 }
 
-func randBytes(n int) ([]byte, error) {
-	b := make([]byte, n)
-	_, err := rand.Read(b)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
-func randStr(n int) (string, error) {
-	b, err := randBytes(n)
-	return base64.URLEncoding.EncodeToString(b), err
+func (d *DiscoveryService) SignBytes(b []byte) ([]byte, error) {
+
+	return []byte{}, nil
 }
 
 // DiscoverIdentity generates the Query about an identity and sends it over Swarm Pss
 func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (*Query, error) {
-
 	msgId, err := randStr(10)
 	if err != nil {
 		return nil, err
