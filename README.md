@@ -36,6 +36,7 @@ Discovery flow:
 	- if the identity data was not in its databases, ask to the network for it (following steps)
 3. `Requester` creates `Query` packet asking for who is the relay of identity `john@domain.eth`
 4. `Requester` sends the `Query` packet into the `Swarm Pss` network under the topic `id_discovery`
+	- the `Requester` waits a configured amount of time, if the `Answer` don't comes inside that time window, returns an error msg through https to the `user`
 5. the `Id_Agent` server of that identity will receive the `Query` packet and will see that is a user under its umbrella
 6. `Id_Agent` server will answer the `Answer` packet (with the proofs of validity, signature, etc) to the `Requester`
 7. `Requester` receives the `Answer` packet (verifies the signature), and now knows how to reach the Relay node of `john@domain.eth`, and can answer to the `user`
@@ -103,15 +104,14 @@ type Answer struct {
 
 ### Run
 
-#### Node by node
-- Node0
+#### Run one node
 ```
 go run *.go --config config0.yaml start
 ```
 
-- Node1
+#### Run 3 nodes and test endpoints
 ```
-go run *.go --config config1.yaml start
+bash run-tmux-demo.sh
 ```
 
 ### Test
@@ -120,8 +120,4 @@ Unit tests:
 go test ./...
 ```
 
-Flow manually test:
-```
-bash run-tmux-demo.sh
-```
 

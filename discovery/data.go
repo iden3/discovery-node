@@ -13,6 +13,7 @@ import (
 	"github.com/iden3/discovery-node/utils"
 )
 
+// DISCOVERYVERSION specifies the version of the discovery protocol
 const DISCOVERYVERSION = "v0.0.1"
 
 // types of services
@@ -24,7 +25,10 @@ const DISCOVERYTYPE = "discovery"
 // types of data packets
 const PREFIXLENGTH = 7
 
+// QUERYMSG is the identifier of Query messages
 var QUERYMSG = utils.HashBytes([]byte("querymsg"))[:PREFIXLENGTH]
+
+// ANSWERMSG is the identifier of Answer messages
 var ANSWERMSG = utils.HashBytes([]byte("answermsg"))[:PREFIXLENGTH]
 
 // PubK is a ecdsa.PublicKey with json marshal and unmarshal functions that convert the key into a byte array
@@ -50,6 +54,7 @@ func (pubK *PubK) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// String returns the PubK in string format
 func (pubK *PubK) String() string {
 	publicKeyBytes := crypto.FromECDSAPub(&pubK.PublicKey)
 	return hexutil.Encode(publicKeyBytes)[4:]
@@ -110,7 +115,7 @@ func (q *Query) Bytes() ([]byte, error) {
 	return r, nil
 }
 
-// QureyFromBytes parses Query data structure from a byte array
+// QueryFromBytes parses Query data structure from a byte array
 func QueryFromBytes(b []byte) (*Query, error) {
 	if !bytes.Equal(b[:PREFIXLENGTH], QUERYMSG) {
 		return nil, errors.New("Not query type")
@@ -132,7 +137,7 @@ type Answer struct {
 	Signature []byte
 }
 
-// Bytes parses the Answer to byte array
+// Id returns a pointer to an Id object from the Answer data packet
 func (a *Answer) Id() *Id {
 	return &Id{
 		IdAddr:   a.AboutId,
@@ -152,6 +157,7 @@ func (a *Answer) Bytes() ([]byte, error) {
 	return r, nil
 }
 
+// Copy returns a pointer to a copy of the Answer data packet
 func (a *Answer) Copy() *Answer {
 	return &Answer{
 		Version:   a.Version,

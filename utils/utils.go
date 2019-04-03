@@ -29,11 +29,14 @@ func HashBytes(b ...[]byte) []byte {
 	h := crypto.Keccak256(b...)
 	return h
 }
+
+// EthHash performs a Keccak256 hash of the EthPrefix + byte array
 func EthHash(b []byte) []byte {
 	header := fmt.Sprintf("%s%d", "\x19Ethereum Signed Message:\n", len(b))
 	return HashBytes([]byte(header), b)
 }
 
+// VerifySignature verifies that the signature of the msg is made by the private key of the given address
 func VerifySignature(addr common.Address, sig, msg []byte) bool {
 	h := EthHash(msg)
 	sig[64] -= 27
@@ -43,6 +46,9 @@ func VerifySignature(addr common.Address, sig, msg []byte) bool {
 		return false
 	}
 	pubK, err := crypto.UnmarshalPubkey(recoveredPub)
+	if err != nil {
+		return false
+	}
 	recoveredAddr := crypto.PubkeyToAddress(*pubK)
 	return bytes.Equal(addr.Bytes(), recoveredAddr.Bytes())
 

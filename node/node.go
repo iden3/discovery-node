@@ -25,6 +25,8 @@ import (
 
 // TIMEOUTQUERYMSG is the maximum amount of time that the node will wait to receive the Answer to a Query packet
 const TIMEOUTQUERYMSG = 10 // 10 seconds
+
+// ACTIVENODETYPE specified the type of an active node
 const ACTIVENODETYPE = "ACTIVE"
 
 var conversations map[string]*gin.Context

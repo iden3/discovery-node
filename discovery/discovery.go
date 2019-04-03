@@ -27,12 +27,7 @@ func NewDiscoveryService(idAddr common.Address, kademliaAddr []byte, pssPubK *ec
 	return d, nil
 }
 
-func (d *DiscoveryService) SignBytes(b []byte) ([]byte, error) {
-
-	return []byte{}, nil
-}
-
-// DiscoverIdentity generates the Query about an identity and sends it over Swarm Pss
+// DiscoverIdentity generates the Query about an identity
 func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (*Query, error) {
 	msgId, err := randStr(10)
 	if err != nil {
@@ -58,8 +53,7 @@ func (d *DiscoveryService) NewQueryPacket(idAddr common.Address) (*Query, error)
 	return q, nil
 }
 
-// AnswerRequest generates and returns the answer for a Query request for which knows the answer
-// first, the Discovery Node will check if knows the answer
+// NewAnswerPacket returns a new Answer data packet, generated from the given Query and Id, and the DiscoveryService itself
 func (d *DiscoveryService) NewAnswerPacket(q *Query, id *Id) (*Answer, error) {
 	// check that the query and id are about the same idaddr
 	if !bytes.Equal(q.AboutId.Bytes(), id.IdAddr.Bytes()) {

@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const privK0_hex = "9032531ad8736ff01515faecbd70f453ff1cc907cab51f6ce38985525d721ba1"
-const privK1_hex = "36aa8fc62a7e482a5f0bfb0c054601fdf2d1cb1d83ff9a1915c53f25ac7968c3"
-const privK2_hex = "a71f5762a9d698b88f97dfc0962fc65151dfddfdde366a1362cff0551daca797"
-const privK3_hex = "e7f83fd5cdd1fa6ee0247262d5cbb61cfbba3a7300948a1a6063009b6c2b997e"
+const privK0Hex = "9032531ad8736ff01515faecbd70f453ff1cc907cab51f6ce38985525d721ba1"
+const privK1Hex = "36aa8fc62a7e482a5f0bfb0c054601fdf2d1cb1d83ff9a1915c53f25ac7968c3"
+const privK2Hex = "a71f5762a9d698b88f97dfc0962fc65151dfddfdde366a1362cff0551daca797"
+const privK3Hex = "e7f83fd5cdd1fa6ee0247262d5cbb61cfbba3a7300948a1a6063009b6c2b997e"
 
 // 0 discovery-node requester keys
 var privK0 *ecdsa.PrivateKey
@@ -43,7 +43,7 @@ func init() {
 	var err error
 
 	// 0
-	privK0, err = crypto.HexToECDSA(privK0_hex)
+	privK0, err = crypto.HexToECDSA(privK0Hex)
 	if err != nil {
 		panic(err)
 	}
@@ -52,7 +52,7 @@ func init() {
 	addr0 = crypto.PubkeyToAddress(pubK0.PublicKey)
 
 	// 1
-	privK1, err = crypto.HexToECDSA(privK1_hex)
+	privK1, err = crypto.HexToECDSA(privK1Hex)
 	if err != nil {
 		panic(err)
 	}
@@ -61,7 +61,7 @@ func init() {
 	addr1 = crypto.PubkeyToAddress(pubK1.PublicKey)
 
 	// 2
-	privK2, err = crypto.HexToECDSA(privK2_hex)
+	privK2, err = crypto.HexToECDSA(privK2Hex)
 	if err != nil {
 		panic(err)
 	}
@@ -70,7 +70,7 @@ func init() {
 	addr2 = crypto.PubkeyToAddress(pubK2.PublicKey)
 
 	// 3
-	privK3, err = crypto.HexToECDSA(privK3_hex)
+	privK3, err = crypto.HexToECDSA(privK3Hex)
 	if err != nil {
 		panic(err)
 	}
