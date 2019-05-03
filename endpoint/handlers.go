@@ -30,10 +30,17 @@ func handleStoreId(c *gin.Context) {
 	var id discovery.Id
 	c.BindJSON(&id)
 
+	// store id in the node
 	err := nodesrv.StoreId(id)
 	color.Cyan("id stored: " + id.IdAddr.Hex())
 	if err != nil {
 		fail(c, "error storing id", err)
+	}
+
+	// listen to pss topic about that new id
+	err = nodesrv.ListenId(id.IdAddr)
+	if err != nil {
+		fail(c, "error listening topic about id", err)
 	}
 
 	c.JSON(200, gin.H{})

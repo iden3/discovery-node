@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/hex"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -11,7 +12,7 @@ const privK1Hex = "36aa8fc62a7e482a5f0bfb0c054601fdf2d1cb1d83ff9a1915c53f25ac796
 
 func TestSignBytes(t *testing.T) {
 	password := "testpassword"
-	ks, acc, err := newTestKeyStorageAndAccount(privK1Hex, "../tmp/test", password)
+	ks, acc, err := newTestKeyStorageAndAccount(privK1Hex, "../tmp/test"+time.Now().String(), password)
 	assert.Nil(t, err)
 	node := &NodeSrv{
 		ks:  ks,

@@ -3,6 +3,7 @@ package node
 import (
 	"crypto/ecdsa"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -40,7 +41,7 @@ func newTestKeyStorageAndAccount(privKHex, path, password string) (*keystore.Key
 
 func TestSignAndVerify(t *testing.T) {
 	password := "testpassword"
-	ks, acc, err := newTestKeyStorageAndAccount(privK0Hex, "../tmp/test", password)
+	ks, acc, err := newTestKeyStorageAndAccount(privK0Hex, "../tmp/test-"+time.Now().String(), password)
 	assert.Nil(t, err)
 	node := &NodeSrv{
 		ks:  ks,

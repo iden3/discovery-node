@@ -40,6 +40,7 @@ type NodeSrv struct {
 	sn          *swarm.SimplePss
 	ks          *keystore.KeyStore
 	acc         accounts.Account
+	listening   map[string]bool // list of subtopics listening
 }
 
 // RunNode starts a new discovery node service
@@ -93,10 +94,8 @@ func RunNode() (*NodeSrv, error) {
 		color.Red(err.Error())
 		os.Exit(0)
 	}
-	// sn.PssSub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, "")
-	fmt.Println("kad addr: ", string(sn.Pss.Kademlia.BaseAddr()))
-	sn.PssSub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, string(sn.Pss.Kademlia.BaseAddr()))
-	// defer sn.PssTopics[config.C.Pss.Topic].Unregister()
+
+	fmt.Println("kad addr: ", hex.EncodeToString(sn.Pss.Kademlia.BaseAddr()))
 
 	dscsrv, err := discovery.NewDiscoveryService(addr, sn.Pss.Kademlia.BaseAddr(), &publicKeyECDSA, "url", config.C.Mode, []byte{})
 	if err != nil {
@@ -120,24 +119,8 @@ func RunNode() (*NodeSrv, error) {
 		sn:          sn,
 		ks:          ks,
 		acc:         acc,
+		listening:   make(map[string]bool),
 	}
-
-	fmt.Println("listening pss swarm, topic: " + config.C.Pss.Topic)
-	go func() {
-		for {
-			pmsg := <-node.sn.PssTopics[config.C.Pss.Topic].Delivery
-			// fmt.Print("[MSG RECEIVED]: ")
-			// color.Yellow(string(pmsg.Msg))
-			msgBytes, err := hex.DecodeString(string(pmsg.Msg))
-			if err != nil {
-				color.Red(err.Error())
-			}
-			err = node.HandleMsg(msgBytes)
-			if err != nil {
-				color.Red(err.Error())
-			}
-		}
-	}()
 
 	return node, nil
 }
@@ -150,6 +133,47 @@ func (node *NodeSrv) StoreId(id discovery.Id) error {
 	}
 	node.dbOwnIds.Put(id.IdAddr.Bytes(), idBytes)
 	return nil
+}
+
+// ListenId listens to Pss topic about the id
+func (node *NodeSrv) ListenId(idAddr common.Address) error {
+	st := GetSubtopic(idAddr)
+	node.ListenSubtopic(st)
+	return nil
+}
+
+// ListenSubtopic starts listening a specific subtopic over Pss Swarm
+func (node *NodeSrv) ListenSubtopic(st string) {
+	if node.listening[st] {
+		// already listening the given subtopic
+		color.Cyan("already listening subtopic " + st)
+		return
+	}
+	// add to listening list
+	node.listening[st] = true
+	color.Cyan("starting to listening subtopic " + st)
+
+	topic := config.C.Pss.Topic + st
+
+	node.sn.PssSub(config.C.Pss.Kind, config.C.Pss.Key, topic, string(node.sn.Pss.Kademlia.BaseAddr()))
+	// defer sn.PssTopics[topic].Unregister()
+
+	fmt.Println("listening pss swarm, topic: " + topic)
+	go func() {
+		for {
+			pmsg := <-node.sn.PssTopics[topic].Delivery
+			// fmt.Print("[MSG RECEIVED]: ")
+			// color.Yellow(string(pmsg.Msg))
+			msgBytes, err := hex.DecodeString(string(pmsg.Msg))
+			if err != nil {
+				color.Red(err.Error())
+			}
+			err = node.HandleMsg(msgBytes)
+			if err != nil {
+				color.Red(err.Error())
+			}
+		}
+	}()
 }
 
 // DiscoverId checks if the nade has a fresh data from the id, if not, asks to the network for an idenity address
@@ -182,6 +206,8 @@ func (node *NodeSrv) DiscoverId(ginContext *gin.Context, idAddr common.Address) 
 	}
 
 	// if answer not found in local databases, ask to the network for it
+	// first start listening in the idAddr subtopic
+	node.ListenId(idAddr)
 
 	fmt.Println("create NewQueryPacket")
 	query, err := node.discsrv.NewQueryPacket(idAddr)
@@ -199,7 +225,9 @@ func (node *NodeSrv) DiscoverId(ginContext *gin.Context, idAddr common.Address) 
 	}
 	msg := hex.EncodeToString(qBytes)
 	fmt.Println("Send Query over Pss Swarm")
-	err = node.sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, msg, "")
+	st := GetSubtopic(idAddr)
+	topic := config.C.Pss.Topic + st
+	err = node.sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, topic, msg, "")
 
 	// wait until the answer is received and sent to the client, or until the timeout is overpassed
 	for {
@@ -355,6 +383,8 @@ func (node *NodeSrv) AnswerAboutId(query *discovery.Query, id *discovery.Id) err
 	fmt.Println("Send Answer over Pss Swarm, encrypted with pubK: " + query.RequesterPssPubK.String() + ", and kademlia addr: " + string(query.RequesterKAddr))
 
 	// send a direct message over Pss Swarm
-	err = node.sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, config.C.Pss.Topic, msg, string(query.RequesterKAddr))
+	st := GetSubtopic(id.IdAddr)
+	topic := config.C.Pss.Topic + st
+	err = node.sn.PssPub(config.C.Pss.Kind, config.C.Pss.Key, topic, msg, string(query.RequesterKAddr))
 	return err
 }
